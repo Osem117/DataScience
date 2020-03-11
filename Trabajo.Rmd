@@ -1,0 +1,146 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Data set de LOL
+
+```{r}
+
+library(tidyverse)
+
+
+```
+
+Lectura de datasets
+
+```{r}
+getwd()
+#Con 'getwd()' obtendo la ruta en la que estoy y la uso en las lineas siguientes para coger los archivos .csv
+lol <- read.csv("./games.csv")
+champions <- read.csv("./champs.csv")
+#Convierto los .csv en dataframes
+DF1 = data.frame(lol)
+DF2 = data.frame(champions)
+
+DF1
+DF2
+```
+
+
+```{r}
+#Renombramos la columna ID como la columna de referencia en la tabla DF1 
+#Renombramos la columna name con un nombre intuitivo para una vez hecho el LEFT-JOIN saber a qué corresponden
+DF2=rename(DF2, t1_champ1id='id')
+DF2=rename(DF2, t1_champ1Name='name')
+DF2
+```
+
+```{r}
+#LEFT-JOIN: Manteniendo como referencia DF1, unimos DF2 usando como unión la columna de ID renombrada antes
+left_join(DF1,DF2, by = 't1_champ1id')
+
+```
+
+```{r}
+#Repetimos la misma operación con los demás campos en los que aparece un ID de personaje
+#SE guarda cada cambio de nombre de una ejecución para la siguiente
+
+DF2=rename(DF2, t1_champ1id='t1_champ1id')
+DF2=rename(DF2, t1_champ1Name='t1_champ1Name')
+left_join(DF1,DF2, by = 't1_champ1id')
+
+#Con esta linea, elimino la columna de identificadores original
+DF1 <- DF1[,-12]
+
+DF2=rename(DF2, t1_champ2id='t1_champ1id')
+DF2=rename(DF2, t1_champ2Name='t1_champ1Name')
+left_join(DF1,DF2, by = 't1_champ2id')
+
+DF2=rename(DF2, t1_champ3id='t1_champ2id')
+DF2=rename(DF2, t1_champ3Name='t1_champ2Name')
+left_join(DF1,DF2, by = 't1_champ3id')
+
+DF2=rename(DF2, t1_champ4id='t1_champ3id')
+DF2=rename(DF2, t1_champ4Name='t1_champ3Name')
+left_join(DF1,DF2, by = 't1_champ4id')
+
+DF2=rename(DF2, t1_champ5id='t1_champ4id')
+DF2=rename(DF2, t1_champ5Name='t1_champ4Name')
+left_join(DF1,DF2, by = 't1_champ5id')
+
+#t1_ban1 - t1_ban2 - t1_ban3 - t1_ban4 - t1_ban5
+
+DF2=rename(DF2, t1_ban1='t1_champ5id')
+DF2=rename(DF2, t1_ban1Name='t1_champ5Name')
+left_join(DF1,DF2, by = 't1_ban1')
+
+DF2=rename(DF2, t1_ban2='t1_ban1')
+DF2=rename(DF2, t1_ban2Name='t1_ban1Name')
+left_join(DF1,DF2, by = 't1_ban2')
+
+DF2=rename(DF2, t1_ban3='t1_ban2')
+DF2=rename(DF2, t1_ban3Name='t1_ban2Name')
+left_join(DF1,DF2, by = 't1_ban3')
+
+DF2=rename(DF2, t1_ban4='t1_ban3')
+DF2=rename(DF2, t1_ban4Name='t1_ban3Name')
+left_join(DF1,DF2, by = 't1_ban4')
+
+DF2=rename(DF2, t1_ban5='t1_ban4')
+DF2=rename(DF2, t1_ban4Name='t1_ban4Name')
+left_join(DF1,DF2, by = 't1_ban5')
+
+#t2
+
+DF2=rename(DF2, t2_champ1id='t1_ban5')
+DF2=rename(DF2, t2_champ1Name='t1_ban4Name')
+left_join(DF1,DF2, by = 't2_champ1id')
+
+DF2=rename(DF2, t2_champ2id='t2_champ1id')
+DF2=rename(DF2, t2_champ2Name='t2_champ1Name')
+left_join(DF1,DF2, by = 't2_champ2id')
+
+DF2=rename(DF2, t2_champ3id='t2_champ2id')
+DF2=rename(DF2, t2_champ3Name='t2_champ2Name')
+left_join(DF1,DF2, by = 't2_champ3id')
+
+DF2=rename(DF2, t2_champ4id='t2_champ3id')
+DF2=rename(DF2, t2_champ4Name='t2_champ3Name')
+left_join(DF1,DF2, by = 't2_champ4id')
+
+DF2=rename(DF2, t2_champ5id='t2_champ4id')
+DF2=rename(DF2, t2_champ5Name='t2_champ4Name')
+left_join(DF1,DF2, by = 't2_champ5id')
+
+#t2_ban1 - t2_ban2 - t2_ban3 - t2_ban4 - t2_ban5
+
+DF2=rename(DF2, t2_ban1='t2_champ5id')
+DF2=rename(DF2, t2_ban1Name='t2_champ5Name')
+left_join(DF1,DF2, by = 't2_ban1')
+
+DF2=rename(DF2, t2_ban2='t2_ban1')
+DF2=rename(DF2, t2_ban2Name='t2_ban1Name')
+left_join(DF1,DF2, by = 't2_ban2')
+
+DF2=rename(DF2, t2_ban3='t2_ban2')
+DF2=rename(DF2, t2_ban3Name='t2_ban2Name')
+left_join(DF1,DF2, by = 't2_ban3')
+
+DF2=rename(DF2, t2_ban4='t2_ban3')
+DF2=rename(DF2, t2_ban4Name='t2_ban3Name')
+left_join(DF1,DF2, by = 't2_ban4')
+
+DF2=rename(DF2, t2_ban5='t2_ban4')
+DF2=rename(DF2, t2_ban5Name='t2_ban4Name')
+left_join(DF1,DF2, by = 't2_ban5')
+
+
+
+
+DF1
+DF2
+```
+
+Problema actual, las columnas nuevas se machacan y no se quedan añadidas.
+
