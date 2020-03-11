@@ -11,11 +11,12 @@ Clustering – limpiar algunas columnas
 
 -Individual
        
-    -Si coincide quien se lleva la primera torre es quien se lleva el primer dragón 
-    o algo así (mas histogramas comparativos entre este tipo de variables
+    -Si coincide quien se lleva la primera torre es quien se lleva el primer 
+    dragón y tal (mas histogramas comparativos entre este tipo de variables
     -Ver si los hechizos elegidos afectan a alguna variable 
     (si se ganan mas partidas, si se tiran mas torres etc)
     -Heraldo + primera torre histograma
-    -Baneos y selecciones de campeones Reglas de asociación, si baneo x se selecciona y etc
+    -Baneos y selecciones de campeones Reglas de asociación
+    si baneo X se selecciona Y, si selecciono x,y se banea z etc
 
 
