@@ -1,146 +1,366 @@
 ---
-title: "R Notebook"
+title: "League of Legends Games"
 output: html_notebook
 ---
 
-Data set de LOL
+## Instalación e importación de las librerías necesarias.
 
 ```{r}
 
-library(tidyverse)
+# install.packages("RJSONIO")
 
+library(dplyr)
+library(RJSONIO)
 
 ```
 
-Lectura de datasets
+## Lectura de datasets.
+
+* Cargamos los datos del fichero csv con la información sobre las partidas en la variable "lol".
+* Cargamos los datos del fichero csv que contiene la correspondencia entre los nombres de los campeones y sus IDs en la variable "champions".
+* Cargamos los datos del fichero JSON que contiene la correspondencia entre los nombres de los hechizos y sus IDs en la variable "summoners".
 
 ```{r}
-getwd()
-#Con 'getwd()' obtendo la ruta en la que estoy y la uso en las lineas siguientes para coger los archivos .csv
-lol <- read.csv("./games.csv")
-champions <- read.csv("./champs.csv")
-#Convierto los .csv en dataframes
-DF1 = data.frame(lol)
-DF2 = data.frame(champions)
+# Lectura
+lol <- read.csv("./lolData/games.csv")
+champions <- read.csv("./lolData/champs.csv")
+con <- file("./lolData/summoner_spell_info.json", "r")
 
-DF1
-DF2
+# Conversión a data frames
+df_summoners <- ldply(fromJSON(con), data.frame)
+close(con)
+df_games = data.frame(lol)
+df_champs = data.frame(champions)
 ```
+
+## Limpieza de datasets.
+
+* Eliminar los atributos que no sean relevantes para nuestro análisis.
+* Eliminar los ejemplos de partidas cuya duración es menor a 15 minutos. Esto quiere decir que la partida ha finalizado por razones fuera de lo normal, por ejemplo, que algún jugador no esté conectado.
+* Sustituir el orden numérico atribuido a los equipos (0, 1, 2) por una etiqueta que lo represente ("none", "blue", "red").
+* Sustituir el identificador numérico de los campeones seleccionados y baneados por cada uno de los jugadores de ambos equipos por el nombre del campeón en el juego.
+* Sustituir el identificador numérico de los dos hechizos que cada uno de los jugadores de ambos equipos usarán en la partida por el nombre del hechizo en el juego.
 
 
 ```{r}
-#Renombramos la columna ID como la columna de referencia en la tabla DF1 
-#Renombramos la columna name con un nombre intuitivo para una vez hecho el LEFT-JOIN saber a qué corresponden
-DF2=rename(DF2, t1_champ1id='id')
-DF2=rename(DF2, t1_champ1Name='name')
-DF2
+# Eliminamos las columnas irrelevantes
+df_games$gameId <- NULL
+df_games$seasonId <- NULL
+df_games$creationTime <- NULL
+
+df_summoners$.id <- NULL
+df_summoners$summonerLevel <- NULL
+df_summoners$key <- NULL
+df_summoners$description <- NULL
+
+df_games <- df_games[!(df_games$gameDuration < 900),]
+
+df_games$winner[df_games$winner == "0"] <- "none"
+df_games$winner[df_games$winner == "1"] <- "blue"
+df_games$winner[df_games$winner == "2"] <- "red"
+
+df_games$firstBlood[df_games$firstBlood == "0"] <- "none"
+df_games$firstBlood[df_games$firstBlood == "1"] <- "blue"
+df_games$firstBlood[df_games$firstBlood == "2"] <- "red"
+
+df_games$firstTower[df_games$firstTower == "0"] <- "none"
+df_games$firstTower[df_games$firstTower == "1"] <- "blue"
+df_games$firstTower[df_games$firstTower == "2"] <- "red"
+
+df_games$firstInhibitor[df_games$firstInhibitor == "0"] <- "none"
+df_games$firstInhibitor[df_games$firstInhibitor == "1"] <- "blue"
+df_games$firstInhibitor[df_games$firstInhibitor == "2"] <- "red"
+
+df_games$firstBaron[df_games$firstBaron == "0"] <- "none"
+df_games$firstBaron[df_games$firstBaron == "1"] <- "blue"
+df_games$firstBaron[df_games$firstBaron == "2"] <- "red"
+
+df_games$firstDragon[df_games$firstDragon == "0"] <- "none"
+df_games$firstDragon[df_games$firstDragon == "1"] <- "blue"
+df_games$firstDragon[df_games$firstDragon == "2"] <- "red"
+
+df_games$firstRiftHerald[df_games$firstRiftHerald == "0"] <- "none"
+df_games$firstRiftHerald[df_games$firstRiftHerald == "1"] <- "blue"
+df_games$firstRiftHerald[df_games$firstRiftHerald == "2"] <- "red"
 ```
 
 ```{r}
-#LEFT-JOIN: Manteniendo como referencia DF1, unimos DF2 usando como unión la columna de ID renombrada antes
-left_join(DF1,DF2, by = 't1_champ1id')
+df_champs = rename(df_champs, t1_champ1id = 'id')
+df_champs = rename(df_champs, t1_champ1Name = 'name')
 
+df_games <- left_join(df_games, df_champs, by = 't1_champ1id')
+df_games$t1_champ1id <- NULL
+
+
+df_champs = rename(df_champs, t1_champ2id = 't1_champ1id')
+df_champs = rename(df_champs, t1_champ2Name = 't1_champ1Name')
+
+df_games <- left_join(df_games, df_champs, by = 't1_champ2id')
+df_games$t1_champ2id <- NULL
+
+
+df_champs = rename(df_champs, t1_champ3id = 't1_champ2id')
+df_champs = rename(df_champs, t1_champ3Name = 't1_champ2Name')
+
+df_games <- left_join(df_games, df_champs, by = 't1_champ3id')
+df_games$t1_champ3id <- NULL
+
+
+df_champs = rename(df_champs, t1_champ4id = 't1_champ3id')
+df_champs = rename(df_champs, t1_champ4Name = 't1_champ3Name')
+
+df_games <- left_join(df_games, df_champs, by = 't1_champ4id')
+df_games$t1_champ4id <- NULL
+
+
+df_champs = rename(df_champs, t1_champ5id = 't1_champ4id')
+df_champs = rename(df_champs, t1_champ5Name = 't1_champ4Name')
+
+df_games <- left_join(df_games, df_champs, by = 't1_champ5id')
+df_games$t1_champ5id <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ1_sum1 = 'id')
+df_summoners = rename(df_summoners, t1_champ1_sumName1 = 'name')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ1_sum1')
+df_games$t1_champ1_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ1_sum2 = 't1_champ1_sum1')
+df_summoners = rename(df_summoners, t1_champ1_sumName2 = 't1_champ1_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ1_sum2')
+df_games$t1_champ1_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ2_sum1 = 't1_champ1_sum2')
+df_summoners = rename(df_summoners, t1_champ2_sumName1 = 't1_champ1_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ2_sum1')
+df_games$t1_champ2_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ2_sum2 = 't1_champ2_sum1')
+df_summoners = rename(df_summoners, t1_champ2_sumName2 = 't1_champ2_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ2_sum2')
+df_games$t1_champ2_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ3_sum1 = 't1_champ2_sum2')
+df_summoners = rename(df_summoners, t1_champ3_sumName1 = 't1_champ2_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ3_sum1')
+df_games$t1_champ3_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ3_sum2 = 't1_champ3_sum1')
+df_summoners = rename(df_summoners, t1_champ3_sumName2 = 't1_champ3_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ3_sum2')
+df_games$t1_champ3_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ4_sum1 = 't1_champ3_sum2')
+df_summoners = rename(df_summoners, t1_champ4_sumName1 = 't1_champ3_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ4_sum1')
+df_games$t1_champ4_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ4_sum2 = 't1_champ4_sum1')
+df_summoners = rename(df_summoners, t1_champ4_sumName2 = 't1_champ4_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ4_sum2')
+df_games$t1_champ4_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ5_sum1 = 't1_champ4_sum2')
+df_summoners = rename(df_summoners, t1_champ5_sumName1 = 't1_champ4_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ5_sum1')
+df_games$t1_champ5_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t1_champ5_sum2 = 't1_champ5_sum1')
+df_summoners = rename(df_summoners, t1_champ5_sumName2 = 't1_champ5_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ5_sum2')
+df_games$t1_champ5_sum2 <- NULL
+
+
+df_champs = rename(df_champs, t1_ban1 = 't1_champ5id')
+df_champs = rename(df_champs, t1_banName1 = 't1_champ5Name')
+
+df_games <- left_join(df_games, df_champs, by = 't1_ban1')
+df_games$t1_ban1 <- NULL
+
+
+df_champs = rename(df_champs, t1_ban2 = 't1_ban1')
+df_champs = rename(df_champs, t1_banName2 = 't1_banName1')
+
+df_games <- left_join(df_games, df_champs, by = 't1_ban2')
+df_games$t1_ban2 <- NULL
+
+
+df_champs = rename(df_champs, t1_ban3 = 't1_ban2')
+df_champs = rename(df_champs, t1_banName3 = 't1_banName2')
+
+df_games <- left_join(df_games, df_champs, by = 't1_ban3')
+df_games$t1_ban3 <- NULL
+
+
+df_champs = rename(df_champs, t1_ban4 = 't1_ban3')
+df_champs = rename(df_champs, t1_banName4 = 't1_banName3')
+
+df_games <- left_join(df_games, df_champs, by = 't1_ban4')
+df_games$t1_ban4 <- NULL
+
+
+df_champs = rename(df_champs, t1_ban5 = 't1_ban4')
+df_champs = rename(df_champs, t1_banName5 = 't1_banName4')
+
+df_games <- left_join(df_games, df_champs, by = 't1_ban5')
+df_games$t1_ban5 <- NULL
+
+
+df_champs = rename(df_champs, t2_champ1id = 't1_ban5')
+df_champs = rename(df_champs, t2_champ1Name = 't1_banName5')
+
+df_games <- left_join(df_games, df_champs, by = 't2_champ1id')
+df_games$t2_champ1id <- NULL
+
+
+df_champs = rename(df_champs, t2_champ2id = 't2_champ1id')
+df_champs = rename(df_champs, t2_champ2Name = 't2_champ1Name')
+
+df_games <- left_join(df_games, df_champs, by = 't2_champ2id')
+df_games$t2_champ2id <- NULL
+
+
+df_champs = rename(df_champs, t2_champ3id = 't2_champ2id')
+df_champs = rename(df_champs, t2_champ3Name = 't2_champ2Name')
+
+df_games <- left_join(df_games, df_champs, by = 't2_champ3id')
+df_games$t2_champ3id <- NULL
+
+
+df_champs = rename(df_champs, t2_champ4id = 't2_champ3id')
+df_champs = rename(df_champs, t2_champ4Name = 't2_champ3Name')
+
+df_games <- left_join(df_games, df_champs, by = 't2_champ4id')
+df_games$t2_champ4id <- NULL
+
+
+df_champs = rename(df_champs, t2_champ5id = 't2_champ4id')
+df_champs = rename(df_champs, t2_champ5Name = 't2_champ4Name')
+
+df_games <- left_join(df_games, df_champs, by = 't2_champ5id')
+df_games$t2_champ5id <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ1_sum1 = 't1_champ5_sum2')
+df_summoners = rename(df_summoners, t2_champ1_sumName1 = 't1_champ5_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ1_sum1')
+df_games$t2_champ1_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ1_sum2 = 't2_champ1_sum1')
+df_summoners = rename(df_summoners, t2_champ1_sumName2 = 't2_champ1_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ1_sum2')
+df_games$t2_champ1_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ2_sum1 = 't2_champ1_sum2')
+df_summoners = rename(df_summoners, t2_champ2_sumName1 = 't2_champ1_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ2_sum1')
+df_games$t2_champ2_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ2_sum2 = 't2_champ2_sum1')
+df_summoners = rename(df_summoners, t2_champ2_sumName2 = 't2_champ2_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ2_sum2')
+df_games$t2_champ2_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ3_sum1 = 't2_champ2_sum2')
+df_summoners = rename(df_summoners, t2_champ3_sumName1 = 't2_champ2_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ3_sum1')
+df_games$t2_champ3_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ3_sum2 = 't2_champ3_sum1')
+df_summoners = rename(df_summoners, t2_champ3_sumName2 = 't2_champ3_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ3_sum2')
+df_games$t2_champ3_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ4_sum1 = 't2_champ3_sum2')
+df_summoners = rename(df_summoners, t2_champ4_sumName1 = 't2_champ3_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ4_sum1')
+df_games$t2_champ4_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ4_sum2 = 't2_champ4_sum1')
+df_summoners = rename(df_summoners, t2_champ4_sumName2 = 't2_champ4_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ4_sum2')
+df_games$t2_champ4_sum2 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ5_sum1 = 't2_champ4_sum2')
+df_summoners = rename(df_summoners, t2_champ5_sumName1 = 't2_champ4_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum1')
+df_games$t2_champ5_sum1 <- NULL
+
+
+df_summoners = rename(df_summoners, t2_champ5_sum2 = 't2_champ5_sum1')
+df_summoners = rename(df_summoners, t2_champ5_sumName2 = 't2_champ5_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum2')
+df_games$t2_champ5_sum2 <- NULL
+
+
+df_champs = rename(df_champs, t2_ban1 = 't2_champ5id')
+df_champs = rename(df_champs, t2_banName1 = 't2_champ5Name')
+
+df_games <- left_join(df_games, df_champs, by = 't2_ban1')
+df_games$t2_ban1 <- NULL
+
+
+df_champs = rename(df_champs, t2_ban2 = 't2_ban1')
+df_champs = rename(df_champs, t2_banName2 = 't2_banName1')
+
+df_games <- left_join(df_games, df_champs, by = 't2_ban2')
+df_games$t2_ban2 <- NULL
+
+
+df_champs = rename(df_champs, t2_ban3 = 't2_ban2')
+df_champs = rename(df_champs, t2_banName3 = 't2_banName2')
+
+df_games <- left_join(df_games, df_champs, by = 't2_ban3')
+df_games$t2_ban3 <- NULL
+
+
+df_champs = rename(df_champs, t2_ban4 = 't2_ban3')
+df_champs = rename(df_champs, t2_banName4 = 't2_banName3')
+
+df_games <- left_join(df_games, df_champs, by = 't2_ban4')
+df_games$t2_ban4 <- NULL
+
+
+df_champs = rename(df_champs, t2_ban5 = 't2_ban4')
+df_champs = rename(df_champs, t2_banName5 = 't2_banName4')
+
+df_games <- left_join(df_games, df_champs, by = 't2_ban5')
+df_games$t2_ban5 <- NULL
 ```
-
-```{r}
-#Repetimos la misma operación con los demás campos en los que aparece un ID de personaje
-#SE guarda cada cambio de nombre de una ejecución para la siguiente
-
-DF2=rename(DF2, t1_champ1id='t1_champ1id')
-DF2=rename(DF2, t1_champ1Name='t1_champ1Name')
-left_join(DF1,DF2, by = 't1_champ1id')
-
-#Con esta linea, elimino la columna de identificadores original
-DF1 <- DF1[,-12]
-
-DF2=rename(DF2, t1_champ2id='t1_champ1id')
-DF2=rename(DF2, t1_champ2Name='t1_champ1Name')
-left_join(DF1,DF2, by = 't1_champ2id')
-
-DF2=rename(DF2, t1_champ3id='t1_champ2id')
-DF2=rename(DF2, t1_champ3Name='t1_champ2Name')
-left_join(DF1,DF2, by = 't1_champ3id')
-
-DF2=rename(DF2, t1_champ4id='t1_champ3id')
-DF2=rename(DF2, t1_champ4Name='t1_champ3Name')
-left_join(DF1,DF2, by = 't1_champ4id')
-
-DF2=rename(DF2, t1_champ5id='t1_champ4id')
-DF2=rename(DF2, t1_champ5Name='t1_champ4Name')
-left_join(DF1,DF2, by = 't1_champ5id')
-
-#t1_ban1 - t1_ban2 - t1_ban3 - t1_ban4 - t1_ban5
-
-DF2=rename(DF2, t1_ban1='t1_champ5id')
-DF2=rename(DF2, t1_ban1Name='t1_champ5Name')
-left_join(DF1,DF2, by = 't1_ban1')
-
-DF2=rename(DF2, t1_ban2='t1_ban1')
-DF2=rename(DF2, t1_ban2Name='t1_ban1Name')
-left_join(DF1,DF2, by = 't1_ban2')
-
-DF2=rename(DF2, t1_ban3='t1_ban2')
-DF2=rename(DF2, t1_ban3Name='t1_ban2Name')
-left_join(DF1,DF2, by = 't1_ban3')
-
-DF2=rename(DF2, t1_ban4='t1_ban3')
-DF2=rename(DF2, t1_ban4Name='t1_ban3Name')
-left_join(DF1,DF2, by = 't1_ban4')
-
-DF2=rename(DF2, t1_ban5='t1_ban4')
-DF2=rename(DF2, t1_ban4Name='t1_ban4Name')
-left_join(DF1,DF2, by = 't1_ban5')
-
-#t2
-
-DF2=rename(DF2, t2_champ1id='t1_ban5')
-DF2=rename(DF2, t2_champ1Name='t1_ban4Name')
-left_join(DF1,DF2, by = 't2_champ1id')
-
-DF2=rename(DF2, t2_champ2id='t2_champ1id')
-DF2=rename(DF2, t2_champ2Name='t2_champ1Name')
-left_join(DF1,DF2, by = 't2_champ2id')
-
-DF2=rename(DF2, t2_champ3id='t2_champ2id')
-DF2=rename(DF2, t2_champ3Name='t2_champ2Name')
-left_join(DF1,DF2, by = 't2_champ3id')
-
-DF2=rename(DF2, t2_champ4id='t2_champ3id')
-DF2=rename(DF2, t2_champ4Name='t2_champ3Name')
-left_join(DF1,DF2, by = 't2_champ4id')
-
-DF2=rename(DF2, t2_champ5id='t2_champ4id')
-DF2=rename(DF2, t2_champ5Name='t2_champ4Name')
-left_join(DF1,DF2, by = 't2_champ5id')
-
-#t2_ban1 - t2_ban2 - t2_ban3 - t2_ban4 - t2_ban5
-
-DF2=rename(DF2, t2_ban1='t2_champ5id')
-DF2=rename(DF2, t2_ban1Name='t2_champ5Name')
-left_join(DF1,DF2, by = 't2_ban1')
-
-DF2=rename(DF2, t2_ban2='t2_ban1')
-DF2=rename(DF2, t2_ban2Name='t2_ban1Name')
-left_join(DF1,DF2, by = 't2_ban2')
-
-DF2=rename(DF2, t2_ban3='t2_ban2')
-DF2=rename(DF2, t2_ban3Name='t2_ban2Name')
-left_join(DF1,DF2, by = 't2_ban3')
-
-DF2=rename(DF2, t2_ban4='t2_ban3')
-DF2=rename(DF2, t2_ban4Name='t2_ban3Name')
-left_join(DF1,DF2, by = 't2_ban4')
-
-DF2=rename(DF2, t2_ban5='t2_ban4')
-DF2=rename(DF2, t2_ban5Name='t2_ban4Name')
-left_join(DF1,DF2, by = 't2_ban5')
-
-
-
-
-DF1
-DF2
-```
-
-Problema actual, las columnas nuevas se machacan y no se quedan añadidas.
-
