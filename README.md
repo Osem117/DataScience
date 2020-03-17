@@ -19,4 +19,5 @@ Clustering – limpiar algunas columnas
     -Baneos y selecciones de campeones Reglas de asociación
     si baneo X se selecciona Y, si selecciono x,y se banea z etc (David) 
 
-
+    - Boxplot ¿? Representar con diagramas temporales cuanto duran las partidas y enfrentarlo a otros datos
+    como cuantas torres e inhibidores tiran u otros datos relevantes (Nacho)
