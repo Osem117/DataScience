@@ -4,7 +4,7 @@ Clustering – limpiar algunas columnas
 -Grupo
 
     -Arboles de decisión: Obener un equipo ganador en función de los datos disponibles. (Alicia)
-    -Boxplot/histogramas comparativos de primera torre + primer heraldo
+    -Boxplot/histogramas comparativos de primera torre + primer heraldo (Maria)
     -Clústering relacionando duración de la partida con set de pj (David)
 
 
