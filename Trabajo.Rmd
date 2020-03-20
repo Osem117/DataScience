@@ -9,6 +9,7 @@ output: html_notebook
 
 # install.packages("RJSONIO")
 
+library(plyr)
 library(dplyr)
 library(RJSONIO)
 
