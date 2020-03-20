@@ -2,6 +2,7 @@ Algoritmo de reglas de asociación
 Clustering – limpiar algunas columnas
 
 -Grupo
+
     -Preprocesado (Alicia)
     -Arboles de decisión: Obener un equipo ganador en función de los datos disponibles. (Alicia)
     -Boxplot/histogramas comparativos de primera torre + primer heraldo (Maria)
