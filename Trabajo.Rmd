@@ -455,7 +455,95 @@ firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
 
 #Clústering (David)
 ```{r}
-asdfasdfasdfasdf
+
+# Primero limpiamos las columnas que no necesitamos para quedarnos solo 
+#con la duracion del juego y los personajes seleccionados
+
+dfClus$winner = NULL
+dfClus$firstBlood = NULL
+dfClus$firstTower = NULL
+dfClus$firstInhibitor = NULL
+dfClus$firstBaron= NULL
+dfClus$firstDragon= NULL
+dfClus$firstRiftHerald= NULL
+
+#Delete the character's spells
+
+#Delete team 1 spells
+dfClus$t1_champ1_sum1= NULL
+dfClus$t1_champ1_sum2= NULL
+
+dfClus$t1_champ2_sum1= NULL
+dfClus$t1_champ2_sum2= NULL
+
+dfClus$t1_champ3_sum1= NULL
+dfClus$t1_champ3_sum2= NULL
+
+dfClus$t1_champ4_sum1= NULL
+dfClus$t1_champ4_sum2= NULL
+
+dfClus$t1_champ5_sum1= NULL
+dfClus$t1_champ5_sum2= NULL
+
+#Delete team 2 spells
+dfClus$t2_champ1_sum1= NULL
+dfClus$t2_champ1_sum2= NULL
+
+dfClus$t2_champ2_sum1= NULL
+dfClus$t2_champ2_sum2= NULL
+
+dfClus$t2_champ3_sum1= NULL
+dfClus$t2_champ3_sum2= NULL
+
+dfClus$t2_champ4_sum1= NULL
+dfClus$t2_champ4_sum2= NULL
+
+dfClus$t2_champ5_sum1= NULL
+dfClus$t2_champ5_sum2= NULL
+
+#Delete the bans made
+
+#Delete bans t1
+dfClus$t1_ban1 = NULL
+dfClus$t1_ban2 = NULL
+dfClus$t1_ban3 = NULL
+dfClus$t1_ban4 = NULL
+dfClus$t1_ban5 = NULL
+
+#Delete bans t2
+dfClus$t2_ban1 = NULL
+dfClus$t2_ban2 = NULL
+dfClus$t2_ban3 = NULL
+dfClus$t2_ban4 = NULL
+dfClus$t2_ban5 = NULL
+
+#Delete Dragon, Tower and baron kills per team
+dfClus$t1_towerKills = NULL
+dfClus$t1_inhibitorKills = NULL
+dfClus$t1_baronKills = NULL
+dfClus$t1_dragonKills = NULL
+dfClus$t1_riftHeraldKills = NULL
+
+dfClus$t2_towerKills = NULL
+dfClus$t2_inhibitorKills = NULL
+dfClus$t2_baronKills = NULL
+dfClus$t2_dragonKills = NULL
+dfClus$t2_riftHeraldKills = NULL
+
+df = dfClus
+
+#transformar el tiempo a minutos 
+df$gameDuration = round(df$gameDuration/60, digits = 0)
+
+#Contamos cuantas ocurrencias hay de cada uno
+qTime = table(df$gameDuration)
+qTime
+
+#numero de campeones (tamaño de la Y)
+qChamp = champions$id
+count(champions, vars="id")
+
+
 
 
 ```
