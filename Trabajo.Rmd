@@ -460,7 +460,6 @@ firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
 # Primero limpiamos las columnas que no necesitamos para quedarnos solo 
 #con la duracion del juego y los personajes seleccionados
 
-dfClus = dfClusID 
 # dfClus -> dataframe con los id sin sustituir
 # dfClusName -> dataframe con los id sustituidos por los nombres
 
@@ -545,16 +544,7 @@ dfClusTeam1 = dfClus
 dfClusTeam2 = dfClus
 
 
-
-#vamos a borrar los team 2 del team 1
-
-dfClusTeam1$t2_champ1id = NULL
-dfClusTeam1$t2_champ2id = NULL
-dfClusTeam1$t2_champ3id = NULL
-dfClusTeam1$t2_champ4id = NULL
-dfClusTeam1$t2_champ5id = NULL
-
-#Vamos a mover los team 2 a team 1 en otra variable para hacer un 
+#mover T2 a T1 y nullear columnas T2 en dfClusTeam2 
 
 dfClusTeam2$t1_champ1id = dfClusTeam2$t2_champ1id
 dfClusTeam2$t1_champ2id = dfClusTeam2$t2_champ2id
@@ -568,17 +558,28 @@ dfClusTeam2$t2_champ3id = NULL
 dfClusTeam2$t2_champ4id = NULL
 dfClusTeam2$t2_champ5id = NULL
 
+
+# nullear T2 en dfClusTeam1
+
+dfClusTeam1$t2_champ1id = NULL
+dfClusTeam1$t2_champ2id = NULL
+dfClusTeam1$t2_champ3id = NULL
+dfClusTeam1$t2_champ4id = NULL
+dfClusTeam1$t2_champ5id = NULL
+
+
+
 dfClusTeam1
 dfClusTeam2
 
-dfClus = rbind.fill(dfClus, dfClusTeam2)
+dfTOTAL = rbind.fill(dfClusTeam1, dfClusTeam2)
 
-dfClus
+dfTOTAL
 
 
-df = scale(dfClus)
+dfTOTAL = scale(dfTOTAL)
 
-hm = heatmap(df, scale = "row")
+hm = heatmap(dfTOTAL, scale = "row")
 
 
 #Contamos cuantas ocurrencias hay de cada uno
