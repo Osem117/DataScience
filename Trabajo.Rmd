@@ -394,5 +394,7 @@ dfAR = df_games
 
 #Clústering (David)
 ```{r}
+asdfasdfasdfasdf
+
 
 ```
