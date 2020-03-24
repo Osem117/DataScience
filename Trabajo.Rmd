@@ -87,11 +87,12 @@ df_games$firstRiftHerald[df_games$firstRiftHerald == "1"] <- "blue"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "2"] <- "red"
 
 
-#Para posterior manipulación de clustering 
-dfClusID = df_games
+#Para posterior manipulación de clustering sin cambiar id -> nombre
+dfClus = df_games
 
 ```
 
+#Cambio de id -> nombre de champions 
 ```{r}
 
 
@@ -459,6 +460,16 @@ firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
 # Primero limpiamos las columnas que no necesitamos para quedarnos solo 
 #con la duracion del juego y los personajes seleccionados
 
+dfClus = dfClusID 
+# dfClus -> dataframe con los id sin sustituir
+# dfClusName -> dataframe con los id sustituidos por los nombres
+
+#transformar el tiempo a minutos 
+dfClusName$gameDuration = round(dfClusName$gameDuration/60, digits = 0)
+dfClus$gameDuration = round(dfClus$gameDuration/60, digits = 0)
+
+#probamos clustering con los nombres
+
 dfClus$winner = NULL
 dfClus$firstBlood = NULL
 dfClus$firstTower = NULL
@@ -530,20 +541,49 @@ dfClus$t2_baronKills = NULL
 dfClus$t2_dragonKills = NULL
 dfClus$t2_riftHeraldKills = NULL
 
-df = dfClus
+dfClusTeam1 = dfClus
+dfClusTeam2 = dfClus
 
-#transformar el tiempo a minutos 
-df$gameDuration = round(df$gameDuration/60, digits = 0)
+
+
+#vamos a borrar los team 2 del team 1
+
+dfClusTeam1$t2_champ1id = NULL
+dfClusTeam1$t2_champ2id = NULL
+dfClusTeam1$t2_champ3id = NULL
+dfClusTeam1$t2_champ4id = NULL
+dfClusTeam1$t2_champ5id = NULL
+
+#Vamos a mover los team 2 a team 1 en otra variable para hacer un 
+
+dfClusTeam2$t1_champ1id = dfClusTeam2$t2_champ1id
+dfClusTeam2$t1_champ2id = dfClusTeam2$t2_champ2id
+dfClusTeam2$t1_champ3id = dfClusTeam2$t2_champ3id
+dfClusTeam2$t1_champ4id = dfClusTeam2$t2_champ4id
+dfClusTeam2$t1_champ5id = dfClusTeam2$t2_champ5id
+
+dfClusTeam2$t2_champ1id = NULL
+dfClusTeam2$t2_champ2id = NULL
+dfClusTeam2$t2_champ3id = NULL
+dfClusTeam2$t2_champ4id = NULL
+dfClusTeam2$t2_champ5id = NULL
+
+dfClusTeam1
+dfClusTeam2
+
+dfClus = rbind.fill(dfClus, dfClusTeam2)
+
+dfClus
+
+
+df = scale(dfClus)
+
+hm = heatmap(df, scale = "row")
+
 
 #Contamos cuantas ocurrencias hay de cada uno
 qTime = table(df$gameDuration)
 qTime
-
-#numero de campeones (tamaño de la Y)
-qChamp = champions$id
-count(champions, vars="id")
-
-
 
 
 ```
