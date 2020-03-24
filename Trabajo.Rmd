@@ -568,23 +568,30 @@ dfClusTeam1$t2_champ4id = NULL
 dfClusTeam1$t2_champ5id = NULL
 
 
-
+#Los teams limpios
 dfClusTeam1
 dfClusTeam2
 
+#unificacion en un unico df de los teams
 dfTOTAL = rbind.fill(dfClusTeam1, dfClusTeam2)
 
 dfTOTAL
 
 
-dfTOTAL = scale(dfTOTAL)
+#extracto para simplificar calculos
+dfPARCIAL = dfTOTAL[1:50,]   
+
+dfPARCIAL
+
+
+#escalar para hacer el heatmap ??
+dfPARCIAL = scale(dfPARCIAL)
+
+
+#heatmap
 
 hm = heatmap(dfTOTAL, scale = "row")
 
-
-#Contamos cuantas ocurrencias hay de cada uno
-qTime = table(df$gameDuration)
-qTime
 
 
 ```
