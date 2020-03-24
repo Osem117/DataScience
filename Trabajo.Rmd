@@ -83,9 +83,16 @@ df_games$firstDragon[df_games$firstDragon == "2"] <- "red"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "0"] <- "none"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "1"] <- "blue"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "2"] <- "red"
+
+
+#Para posterior manipulación de clustering 
+dfClusID = df_games
+
 ```
 
 ```{r}
+
+
 df_champs = rename(df_champs, t1_champ1id = 'id')
 df_champs = rename(df_champs, t1_champ1Name = 'name')
 
@@ -364,4 +371,28 @@ df_champs = rename(df_champs, t2_banName5 = 't2_banName4')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban5')
 df_games$t2_ban5 <- NULL
+
+
+#Variables con los nombres en lugar de los ID 
+dfClusName = df_games
+dfAR = df_games
+
+```
+
+
+#Chunk arboles de decisión. (Alicia)
+```{r}
+
+```
+
+
+#Histogramas comparativos (María)
+```{r}
+
+```
+
+
+#Clústering (David)
+```{r}
+
 ```
