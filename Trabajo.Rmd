@@ -391,15 +391,36 @@ dfAR = df_games
 #Histogramas comparativos (María)
 ```{r}
 
-library(ggplot2)
+#View First Rift Herald rates
 
-ggplot(df_games, aes(x = firstRiftHerald)) + 
-  geom_bar(color = 'darkGray', fill = 'lightBlue') + 
-  geom_text(stat='count',aes(label=..count..),vjust=-0.5)
+ggplot(df_games, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+  scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
+  scale_y_continuous(name= "Total") +
+  scale_x_discrete(name = "First Rift Herald", labels = c('Blue','None','Red'))
+  
+#View First Tower rates
+  
+ggplot(df_games, aes(x = firstTower, fill = firstTower)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+  scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
+  scale_y_continuous(name= "Total") +
+  scale_x_discrete(name = "First Tower", labels = c('Blue','None','Red'))
 
 ```
 
 ```{r}
+
+#Parte individual
+
+#First Dragon
+
+firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+  scale_fill_manual(values=c("#00BFC4", "#D3D3D3", "#F8766D")) +
+  scale_y_continuous(name= "Frequency") +
+  scale_x_discrete(name = "First Dragon", labels = c('Blue','None','Red'))
+  firstDragon + theme(legend.position="none")
 
 #View winning rates
 
@@ -409,7 +430,6 @@ ggplot(df_games, aes(x = winner, fill = winner)) +
   scale_y_continuous(name= "Frequency") +
   scale_x_discrete(name = "Winning Team", labels = c('Blue','Red')) 
  
-  
 #View First Blood rates
 
 ggplot(df_games, aes(x = firstBlood, fill = firstBlood)) +
@@ -417,38 +437,6 @@ ggplot(df_games, aes(x = firstBlood, fill = firstBlood)) +
   scale_fill_manual(values=c("#00BFC4","#F8766D")) +
   scale_y_continuous(name= "Frequency") +
   scale_x_discrete(name = "First Blood", labels = c('Blue','Red'))
-
-
-#View First Rift Herald rates
-
-ggplot(df_games, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
-  scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
-  scale_y_continuous(name= "Frequency") +
-  scale_x_discrete(name = "First Rift Herald", labels = c('Blue','None','Red'))
-
-  
-#View First Tower rates
-  
-ggplot(df_games, aes(x = firstTower, fill = firstTower)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
-  scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
-  scale_y_continuous(name= "Frequency") +
-  scale_x_discrete(name = "First Tower", labels = c('Blue','None','Red'))
-
-```
-
-```{r}
-
-#Parte individual
-#First Dragon
-
-firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
-  scale_fill_manual(values=c("#00BFC4", "#D3D3D3", "#F8766D")) +
-  scale_y_continuous(name= "Frequency") +
-  scale_x_discrete(name = "First Dragon", labels = c('Blue','None','Red'))
-  firstDragon + theme(legend.position="none")
   
 ```
 
