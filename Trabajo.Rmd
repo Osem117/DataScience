@@ -461,76 +461,50 @@ dfHist$t2_banName3 = NULL
 dfHist$t2_banName4 = NULL
 dfHist$t2_banName5 = NULL
 
-with(dfHist, table(winner, firstBlood))
+# Represento en Histogramas cuántas veces se ha llevado el equipo azul
+# el primer heraldo y la primera torre.
 
-#Represento en Histogramas cuántas veces se ha llevado el equipo azul
-#el primer heraldo y la primera torre.
-
-#View First Rift Herald
+# View First Rift Herald
 
 ggplot(dfHist, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
   geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
-  scale_y_continuous(name= "Total") +
+  scale_y_continuous(name= "Games") +
   scale_x_discrete(name = "First Rift Herald", labels = c('Blue','None','Red'))
   
-#View First Tower
+# View First Tower
   
 ggplot(dfHist, aes(x = firstTower, fill = firstTower)) +
   geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
-  scale_y_continuous(name= "Total") +
+  scale_y_continuous(name= "Games") +
   scale_x_discrete(name = "First Tower", labels = c('Blue','None','Red'))
 
-per_data <- dfHist %>%
-  count(firstTower) %>%
-  mutate(per= n / sum(n),
-         per_label = paste0(round(per*100), "%"))
+# Probabilidad del quipo azul de tirar primera torre
+# si se hace al primer heraldo.
 
-ggplot(per_data, aes(x = firstTower, fill = firstTower), y = per) +
-  geom_bar(stat = "identity", fill = "lighblue") +
-  geom_text(aes(label = per_label), vjust = -0.25) +
-  labs(x = "Team",
-       y = "Count") +
-  scale_y_continuous(labels = scales::percent) +
-  theme_bw()
+table(firstTower)
+table(firstRiftHerald)
+table_RH_FT<- table(firstRiftHerald, firstTower)
+p_firstTowerIfFRH<-percent(table_RH_FT[1,1]/ tableFT[1])
+p_firstTowerIfFRH
+
+# Probabilidad de tirar primera torre del equipo azul
+# si nadie ha hecho el primer heraldo
+
+table_RH_FT<- table(firstRiftHerald, firstTower)
+p_firstTowerT1<-percent(table_RH_FT[2,1]/ tableFT[1])
+p_firstTowerIfFRH
+
+# Probabilidad de tirar primera torre del equipo rojo
+# si nadie ha hecho el primer heraldo
+
+table_RH_FT<- table(firstRiftHerald, firstTower)
+p_firstTowerT2<-percent(table_RH_FT[2,3]/ tableFT[3])
+p_firstTowerIfFRH
 
 
 ```
-
-```{r}
-
-#Parte individual
-
-#Gráfico de la duración de las partidas.
-
-#First Dragon
-
-ggplot(dfHist, aes(firstDragon, fill = firstDragon  ) ) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
-  scale_fill_manual(values=c("#00BFC4", "#D3D3D3", "#F8766D")) +
-  scale_y_continuous(name= "Frequency") +
-  scale_x_discrete(name = "First Dragon", labels = c('Blue','None','Red'))
-  firstDragon + theme(legend.position="none")
-
-#View winning rates
-
-ggplot(dfHist, aes(x = winner, fill = winner)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
-  scale_fill_manual(values=c("#00BFC4", "#F8766D")) +
-  scale_y_continuous(name= "Frequency") +
-  scale_x_discrete(name = "Winning Team", labels = c('Blue','Red')) 
- 
-#View First Blood
-
-ggplot(dfHist, aes(x = firstBlood, fill = firstBlood)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
-  scale_fill_manual(values=c("#00BFC4","#F8766D")) +
-  scale_y_continuous(name= "Frequency") +
-  scale_x_discrete(name = "First Blood", labels = c('Blue','Red'))
-  
-```
-
 
 #Clústering (David)
 ```{r}
