@@ -452,11 +452,13 @@ ggplot(df_games, aes(x = firstBlood, fill = firstBlood)) +
 # dfClusName -> dataframe con los id sustituidos por los nombres
 
 dfClus = dfClusName
-
+#Quitamos los partidos por encima de 40 minutos 
+#fuente: https://www.leagueofgraphs.com/es/rankings/game-durations
 dfClus
+dfClus <- dfClus[!(dfClus$gameDuration > 2400),]
 
 #transformar el tiempo. Por minutos es mucho 
-dfClus$gameDuration = round(dfClus$gameDuration/60, digits = -1)
+dfClus$gameDuration = round(dfClus$gameDuration/60, digits = 0)
 
 dfClus
 
@@ -553,14 +555,9 @@ tt = t1+t2+t3+t4+t5+t6+t7+t8+t9+t10
 tt
 
 t1[1:5,1:5]
-t2[1:5,1:5]
-t3[1:5,1:5]
-tt[1:5,1:5]
-
-
-#eliminar campeones con menos pics que X
-#  df_games <- df_games[!(df_games$gameDuration < 900),]
-
+#t2[1:5,1:5]
+#t3[1:5,1:5]
+#tt[1:5,1:5]
 
 
 #Dataframe con el conteo hecho
@@ -568,9 +565,22 @@ dt = as.data.frame(tt)
 
 dt
 
-showPlot = ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
+#Primer plot en el que no se distinguen bien los champs
+ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
 
-print(showPlot)
 
+#Primer filtro. Eliminar campeones picks menor de 200
+best200 <- dt[!(dt$Freq < 200),]
+#se visualiza mejor, pero aun es dificil obtener informacion clara
+pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile()
+pbest200
+
+
+#Segundo filtro. Eliminar campeones picks menor de 400
+best400 <- dt[!(dt$Freq < 400),]
+
+#se visualiza mejor, Se  puede obtener informacion clara
+pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile()
+pbest400
 
 ```
