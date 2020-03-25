@@ -497,15 +497,33 @@ p_firstTowerIfFRH
 
 table_RH_FT<- table(firstRiftHerald, firstTower)
 p_firstTowerT1<-percent(table_RH_FT[2,1]/ tableFT[1])
-p_firstTowerIfFRH
+p_firstTowerT1
 
 # Probabilidad de tirar primera torre del equipo rojo
 # si nadie ha hecho el primer heraldo
 
 table_RH_FT<- table(firstRiftHerald, firstTower)
 p_firstTowerT2<-percent(table_RH_FT[2,3]/ tableFT[3])
-p_firstTowerIfFRH
+p_firstTowerT2
 
+# Convierto a tabla y dataframe
+
+probX <- matrix(c (36.4, 50, 49.2), ncol=3, nrow = 1, byrow=TRUE)
+colnames(probX) <- c("p_firstTowerIfFRH","p_firstTowerT1","p_firstTowerT2")
+rownames(probX) <- c("Probability")
+probX <- as.table(probX)
+probX
+
+prob1 <- as.data.frame(probX)
+
+Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), V1)) + geom_bar(stat='identity', fill = "#FF6666", colour="black") +
+  geom_text(aes(label = V1, vjust = 3)) +
+  scale_y_continuous(name= "Probabilities %") +
+  scale_x_discrete(name = "First Tower with and witout Herald", labels = c('First Tower with First Herald','T1 First Tower withot Herald','T2 First Tower withot Herald')) +
+  ggtitle("Probabilities % of getting First Tower")
+Prob1_plot + theme(plot.title = element_text(color="Black", size=12, face="bold.italic"))
+
+# CONCLUSIÓN: Aquí estamos estudiando la relación entre Hacer Primer Heraldo + Tirar Primera Torre. Como se puede observar en el gráfico, el hecho de hacer el primer heraldo no es muy relevante ya que nos da un 36,4% de probabilidad que el equipo azul tire la primera torre teniendo el primer heraldo. Esto se puede deber a que las partidas del dataset son de equipos "low rank" y no se interesan mucho por hacer objetivos, ya que teniendo el heraldo permite conseguir una ventaja a la hora de tirar torres, ventaja muy importante en el early game para superar al enemigo en oro. Después se puede observar que sin tener el Heraldo los dos equipos tienen casi la misma probabilidad de tirar la primera torre.
 
 ```
 
