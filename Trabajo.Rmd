@@ -571,6 +571,7 @@ ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
 
 #Primer filtro. Eliminar campeones picks menor de 200
 best200 <- dt[!(dt$Freq < 200),]
+best200
 #se visualiza mejor, pero aun es dificil obtener informacion clara
 pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile()
 pbest200
@@ -582,5 +583,30 @@ best400 <- dt[!(dt$Freq < 400),]
 #se visualiza mejor, Se  puede obtener informacion clara
 pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile()
 pbest400
+
+# OPCION 1 POSIBLE ANIMALADA
+# sacar media de picks por pj y quedarme con el x que coincida para 
+# obtener un unico punto y hacer clustering(clustering)
+
+  #  meanPicks = dt[(mean(dt$Freq)),]
+
+  #  meanPicks
+
+# OPCION 2 MAS PLAUSIBLE
+# meter a saco los datos en el algoritmo cluster, a ver que pasa 
+
+  #No se muestran los nombres. Ver los parametros
+clusClara = clara(x=best400 , k=3, metric = "manhattan", stand = TRUE, samples = 50, pamLike = TRUE)
+clusClara
+
+fviz_cluster(object = clusClara, ellipse.type = "t", geom = "point",
+             pointsize = 2.5) +
+  theme_bw() +
+  labs(title = "Resultados clustering CLARA") +
+  theme(legend.position = "none")
+
+# para hacer esto necesito los ID en lugar de los nombres porque da fallo de NAN
+    # km_k = kmeans(x=best400, centers = 4, nstart = 50)
+
 
 ```
