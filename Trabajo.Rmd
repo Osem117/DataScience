@@ -392,21 +392,109 @@ dfAR = df_games
 #Histogramas comparativos (María)
 ```{r}
 
-#View First Rift Herald rates
+library(ggplot2)
 
-ggplot(df_games, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+dfHist = df_games
+
+#Primero elimino las columnas que no necesito.
+
+#Delete champ names
+
+dfHist$t1_champ1Name= NULL
+dfHist$t1_champ2Name= NULL
+dfHist$t1_champ3Name= NULL
+dfHist$t1_champ4Name= NULL
+dfHist$t1_champ5Name= NULL
+dfHist$t2_champ1Name= NULL
+dfHist$t2_champ2Name= NULL
+dfHist$t2_champ3Name= NULL
+dfHist$t2_champ4Name= NULL
+dfHist$t2_champ5Name= NULL
+
+#Delete the character's spells
+
+#Delete team 1 spells
+dfHist$t1_champ1_sumName1= NULL
+dfHist$t1_champ1_sumName2= NULL
+
+dfHist$t1_champ2_sumName1= NULL
+dfHist$t1_champ2_sumName2= NULL
+
+dfHist$t1_champ3_sumName1= NULL
+dfHist$t1_champ3_sumName2= NULL
+
+dfHist$t1_champ4_sumName1= NULL
+dfHist$t1_champ4_sumName2= NULL
+
+dfHist$t1_champ5_sumName1= NULL
+dfHist$t1_champ5_sumName2= NULL
+
+#Delete team 2 spells
+dfHist$t2_champ1_sumName1= NULL
+dfHist$t2_champ1_sumName2= NULL
+
+dfHist$t2_champ2_sumName1= NULL
+dfHist$t2_champ2_sumName2= NULL
+
+dfHist$t2_champ3_sumName1= NULL
+dfHist$t2_champ3_sumName2= NULL
+
+dfHist$t2_champ4_sumName1= NULL
+dfHist$t2_champ4_sumName2= NULL
+
+dfHist$t2_champ5_sumName1= NULL
+dfHist$t2_champ5_sumName2= NULL
+
+#Delete the bans made
+
+#Delete bans t1
+dfHist$t1_banName1 = NULL
+dfHist$t1_banName2 = NULL
+dfHist$t1_banName3 = NULL
+dfHist$t1_banName4 = NULL
+dfHist$t1_banName5 = NULL
+
+#Delete bans t2
+dfHist$t2_banName1 = NULL
+dfHist$t2_banName2 = NULL
+dfHist$t2_banName3 = NULL
+dfHist$t2_banName4 = NULL
+dfHist$t2_banName5 = NULL
+
+with(dfHist, table(winner, firstBlood))
+
+#Represento en Histogramas cuántas veces se ha llevado el equipo azul
+#el primer heraldo y la primera torre.
+
+#View First Rift Herald
+
+ggplot(dfHist, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
   scale_y_continuous(name= "Total") +
   scale_x_discrete(name = "First Rift Herald", labels = c('Blue','None','Red'))
   
-#View First Tower rates
+#View First Tower
   
-ggplot(df_games, aes(x = firstTower, fill = firstTower)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+ggplot(dfHist, aes(x = firstTower, fill = firstTower)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
   scale_y_continuous(name= "Total") +
   scale_x_discrete(name = "First Tower", labels = c('Blue','None','Red'))
+
+per_data <- dfHist %>%
+  count(firstTower) %>%
+  mutate(per= n / sum(n),
+         per_label = paste0(round(per*100), "%"))
+
+ggplot(per_data, aes(x = firstTower, fill = firstTower), y = per) +
+  geom_bar(stat = "identity", fill = "lighblue") +
+  geom_text(aes(label = per_label), vjust = -0.25) +
+  labs(x = "Team",
+       y = "Count") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
 
 ```
 
@@ -414,10 +502,12 @@ ggplot(df_games, aes(x = firstTower, fill = firstTower)) +
 
 #Parte individual
 
+#Gráfico de la duración de las partidas.
+
 #First Dragon
 
-firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+ggplot(dfHist, aes(firstDragon, fill = firstDragon  ) ) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4", "#D3D3D3", "#F8766D")) +
   scale_y_continuous(name= "Frequency") +
   scale_x_discrete(name = "First Dragon", labels = c('Blue','None','Red'))
@@ -425,16 +515,16 @@ firstDragon <- ggplot(df_games, aes(firstDragon, fill = firstDragon  ) ) +
 
 #View winning rates
 
-ggplot(df_games, aes(x = winner, fill = winner)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+ggplot(dfHist, aes(x = winner, fill = winner)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4", "#F8766D")) +
   scale_y_continuous(name= "Frequency") +
   scale_x_discrete(name = "Winning Team", labels = c('Blue','Red')) 
  
-#View First Blood rates
+#View First Blood
 
-ggplot(df_games, aes(x = firstBlood, fill = firstBlood)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.5) +
+ggplot(dfHist, aes(x = firstBlood, fill = firstBlood)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
   scale_fill_manual(values=c("#00BFC4","#F8766D")) +
   scale_y_continuous(name= "Frequency") +
   scale_x_discrete(name = "First Blood", labels = c('Blue','Red'))
