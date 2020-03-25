@@ -541,9 +541,16 @@ ggplot(dfHist, aes(x = firstBlood, fill = firstBlood)) +
 # dfClus -> dataframe con los id sin sustituir
 # dfClusName -> dataframe con los id sustituidos por los nombres
 
-#transformar el tiempo a minutos 
-dfClusName$gameDuration = round(dfClusName$gameDuration/60, digits = 0)
+dfClus = dfClusName
+#Quitamos los partidos por encima de 40 minutos 
+#fuente: https://www.leagueofgraphs.com/es/rankings/game-durations
+dfClus
+dfClus <- dfClus[!(dfClus$gameDuration > 2400),]
+
+#transformar el tiempo. Por minutos es mucho 
 dfClus$gameDuration = round(dfClus$gameDuration/60, digits = 0)
+
+dfClus
 
 #probamos clustering con los nombres
 
@@ -558,52 +565,53 @@ dfClus$firstRiftHerald= NULL
 #Delete the character's spells
 
 #Delete team 1 spells
-dfClus$t1_champ1_sum1= NULL
-dfClus$t1_champ1_sum2= NULL
 
-dfClus$t1_champ2_sum1= NULL
-dfClus$t1_champ2_sum2= NULL
+dfClus$t1_champ1_sumName1= NULL
+dfClus$t1_champ1_sumName2= NULL
 
-dfClus$t1_champ3_sum1= NULL
-dfClus$t1_champ3_sum2= NULL
+dfClus$t1_champ2_sumName1= NULL
+dfClus$t1_champ2_sumName2= NULL
 
-dfClus$t1_champ4_sum1= NULL
-dfClus$t1_champ4_sum2= NULL
+dfClus$t1_champ3_sumName1= NULL
+dfClus$t1_champ3_sumName2= NULL
 
-dfClus$t1_champ5_sum1= NULL
-dfClus$t1_champ5_sum2= NULL
+dfClus$t1_champ4_sumName1= NULL
+dfClus$t1_champ4_sumName2= NULL
+
+dfClus$t1_champ5_sumName1= NULL
+dfClus$t1_champ5_sumName2= NULL
 
 #Delete team 2 spells
-dfClus$t2_champ1_sum1= NULL
-dfClus$t2_champ1_sum2= NULL
+dfClus$t2_champ1_sumName1= NULL
+dfClus$t2_champ1_sumName2= NULL
 
-dfClus$t2_champ2_sum1= NULL
-dfClus$t2_champ2_sum2= NULL
+dfClus$t2_champ2_sumName1= NULL
+dfClus$t2_champ2_sumName2= NULL
 
-dfClus$t2_champ3_sum1= NULL
-dfClus$t2_champ3_sum2= NULL
+dfClus$t2_champ3_sumName1= NULL
+dfClus$t2_champ3_sumName2= NULL
 
-dfClus$t2_champ4_sum1= NULL
-dfClus$t2_champ4_sum2= NULL
+dfClus$t2_champ4_sumName1= NULL
+dfClus$t2_champ4_sumName2= NULL
 
-dfClus$t2_champ5_sum1= NULL
-dfClus$t2_champ5_sum2= NULL
+dfClus$t2_champ5_sumName1= NULL
+dfClus$t2_champ5_sumName2= NULL
 
 #Delete the bans made
 
 #Delete bans t1
-dfClus$t1_ban1 = NULL
-dfClus$t1_ban2 = NULL
-dfClus$t1_ban3 = NULL
-dfClus$t1_ban4 = NULL
-dfClus$t1_ban5 = NULL
+dfClus$t1_banName1 = NULL
+dfClus$t1_banName2 = NULL
+dfClus$t1_banName3 = NULL
+dfClus$t1_banName4 = NULL
+dfClus$t1_banName5 = NULL
 
 #Delete bans t2
-dfClus$t2_ban1 = NULL
-dfClus$t2_ban2 = NULL
-dfClus$t2_ban3 = NULL
-dfClus$t2_ban4 = NULL
-dfClus$t2_ban5 = NULL
+dfClus$t2_banName1 = NULL
+dfClus$t2_banName2 = NULL
+dfClus$t2_banName3 = NULL
+dfClus$t2_banName4 = NULL
+dfClus$t2_banName5 = NULL
 
 #Delete Dragon, Tower and baron kills per team
 dfClus$t1_towerKills = NULL
@@ -618,58 +626,77 @@ dfClus$t2_baronKills = NULL
 dfClus$t2_dragonKills = NULL
 dfClus$t2_riftHeraldKills = NULL
 
-dfClusTeam1 = dfClus
-dfClusTeam2 = dfClus
+
+#Usar la funcion table de R para hacer conteo y sumar todos los elementos
+
+t1 = table(x=dfClus$gameDuration, y=dfClus$t1_champ1Name)
+t2 = table(x=dfClus$gameDuration, y=dfClus$t1_champ2Name)
+t3 = table(x=dfClus$gameDuration, y=dfClus$t1_champ3Name)
+t4 = table(x=dfClus$gameDuration, y=dfClus$t1_champ4Name)
+t5 = table(x=dfClus$gameDuration, y=dfClus$t1_champ5Name)
+
+t6 = table(x=dfClus$gameDuration, y=dfClus$t2_champ1Name)
+t7 = table(x=dfClus$gameDuration, y=dfClus$t2_champ2Name)
+t8 = table(x=dfClus$gameDuration, y=dfClus$t2_champ3Name)
+t9 = table(x=dfClus$gameDuration, y=dfClus$t2_champ4Name)
+t10 = table(x=dfClus$gameDuration, y=dfClus$t2_champ5Name)
+
+tt = t1+t2+t3+t4+t5+t6+t7+t8+t9+t10
+tt
+
+t1[1:5,1:5]
+#t2[1:5,1:5]
+#t3[1:5,1:5]
+#tt[1:5,1:5]
 
 
-#mover T2 a T1 y nullear columnas T2 en dfClusTeam2 
+#Dataframe con el conteo hecho
+dt = as.data.frame(tt)
 
-dfClusTeam2$t1_champ1id = dfClusTeam2$t2_champ1id
-dfClusTeam2$t1_champ2id = dfClusTeam2$t2_champ2id
-dfClusTeam2$t1_champ3id = dfClusTeam2$t2_champ3id
-dfClusTeam2$t1_champ4id = dfClusTeam2$t2_champ4id
-dfClusTeam2$t1_champ5id = dfClusTeam2$t2_champ5id
+dt
 
-dfClusTeam2$t2_champ1id = NULL
-dfClusTeam2$t2_champ2id = NULL
-dfClusTeam2$t2_champ3id = NULL
-dfClusTeam2$t2_champ4id = NULL
-dfClusTeam2$t2_champ5id = NULL
+#Primer plot en el que no se distinguen bien los champs
+ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
 
 
-# nullear T2 en dfClusTeam1
-
-dfClusTeam1$t2_champ1id = NULL
-dfClusTeam1$t2_champ2id = NULL
-dfClusTeam1$t2_champ3id = NULL
-dfClusTeam1$t2_champ4id = NULL
-dfClusTeam1$t2_champ5id = NULL
-
-
-#Los teams limpios
-dfClusTeam1
-dfClusTeam2
-
-#unificacion en un unico df de los teams
-dfTOTAL = rbind.fill(dfClusTeam1, dfClusTeam2)
-
-dfTOTAL
+#Primer filtro. Eliminar campeones picks menor de 200
+best200 <- dt[!(dt$Freq < 200),]
+best200
+#se visualiza mejor, pero aun es dificil obtener informacion clara
+pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile()
+pbest200
 
 
-#extracto para simplificar calculos
-dfPARCIAL = dfTOTAL[1:50,]   
+#Segundo filtro. Eliminar campeones picks menor de 400
+best400 <- dt[!(dt$Freq < 400),]
 
-dfPARCIAL
+#se visualiza mejor, Se  puede obtener informacion clara
+pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile()
+pbest400
 
+# OPCION 1 POSIBLE ANIMALADA
+# sacar media de picks por pj y quedarme con el x que coincida para 
+# obtener un unico punto y hacer clustering(clustering)
 
-#escalar para hacer el heatmap ??
-dfPARCIAL = scale(dfPARCIAL)
+  #  meanPicks = dt[(mean(dt$Freq)),]
 
+  #  meanPicks
 
-#heatmap
+# OPCION 2 MAS PLAUSIBLE
+# meter a saco los datos en el algoritmo cluster, a ver que pasa 
 
-hm = heatmap(dfTOTAL, scale = "row")
+  #No se muestran los nombres. Ver los parametros
+clusClara = clara(x=best400 , k=3, metric = "manhattan", stand = TRUE, samples = 50, pamLike = TRUE)
+clusClara
 
+fviz_cluster(object = clusClara, ellipse.type = "t", geom = "point",
+             pointsize = 2.5) +
+  theme_bw() +
+  labs(title = "Resultados clustering CLARA") +
+  theme(legend.position = "none")
+
+# para hacer esto necesito los ID en lugar de los nombres porque da fallo de NAN
+    # km_k = kmeans(x=best400, centers = 4, nstart = 50)
 
 
 ```
