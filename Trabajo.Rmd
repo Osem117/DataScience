@@ -537,25 +537,22 @@ Prob1_plot + theme(plot.title = element_text(color="Black", size=12, face="bold.
 #Clústering (David)
 ```{r}
 
-# Primero limpiamos las columnas que no necesitamos para quedarnos solo 
-#con la duracion del juego y los personajes seleccionados
+#Queremos obtener los personajes que más se seleccionan en las partidas que duran menos tiempo. Es decir, los que suelen facilitar que la partida se acorte debido a que son buenos personajes. 
 
-# dfClus -> dataframe con los id sin sustituir
-# dfClusName -> dataframe con los id sustituidos por los nombres
+# Debemos limpiar las columnas que no necesitemos. Para ello nos quedamos solo con la duracion del juego y los personajes seleccionados ya que es la información que necesitamos para hacer un  heatmap donde el eje X corresponda con la duración de la partida y el eje Y con los personajes disponibles, siendo la tupla x,y en las partidas que han durado X cuántas veces se ha seleccionado el personaje Y.
 
+#Necesitamos los nombres de los personajes en lugar del ID
 dfClus = dfClusName
-#Quitamos los partidos por encima de 40 minutos 
-#fuente: https://www.leagueofgraphs.com/es/rankings/game-durations
+
+#Quitamos los partidos por encima de 40 minutos. Esta decisión la he tomado al obtener una media de duración de la fuente https://www.leagueofgraphs.com/es/rankings/game-durations. He considerado que si el objetivo es observar los mejores personajes en partidas de corta duración, las partidas que superen la media en un 20-30% no son de nuestro interés para el estudio, pero evidentemente necesitamos partidas con una duración media o un poco larga a fin de tener una referencia comparativa.
 dfClus
 dfClus <- dfClus[!(dfClus$gameDuration > 2400),]
 
-#transformar el tiempo. Por minutos es mucho 
+
+#El tiempo viene dado en segundos, por lo que lo transformamos a minutos, redondeando a cero dígitos. 
 dfClus$gameDuration = round(dfClus$gameDuration/60, digits = 0)
 
-dfClus
-
-#probamos clustering con los nombres
-
+#Eliminamos las columnas que no nos aportan información relevante para este proceso.
 dfClus$winner = NULL
 dfClus$firstBlood = NULL
 dfClus$firstTower = NULL
@@ -564,9 +561,21 @@ dfClus$firstBaron= NULL
 dfClus$firstDragon= NULL
 dfClus$firstRiftHerald= NULL
 
-#Delete the character's spells
+dfClus$t1_towerKills = NULL
+dfClus$t1_inhibitorKills = NULL
+dfClus$t1_baronKills = NULL
+dfClus$t1_dragonKills = NULL
+dfClus$t1_riftHeraldKills = NULL
 
-#Delete team 1 spells
+dfClus$t2_towerKills = NULL
+dfClus$t2_inhibitorKills = NULL
+dfClus$t2_baronKills = NULL
+dfClus$t2_dragonKills = NULL
+dfClus$t2_riftHeraldKills = NULL
+
+#Columnas de hechizos de campeón
+
+#Hechizos del equipo 1
 
 dfClus$t1_champ1_sumName1= NULL
 dfClus$t1_champ1_sumName2= NULL
@@ -583,7 +592,7 @@ dfClus$t1_champ4_sumName2= NULL
 dfClus$t1_champ5_sumName1= NULL
 dfClus$t1_champ5_sumName2= NULL
 
-#Delete team 2 spells
+#Hechizos del equipo 1
 dfClus$t2_champ1_sumName1= NULL
 dfClus$t2_champ1_sumName2= NULL
 
@@ -599,37 +608,25 @@ dfClus$t2_champ4_sumName2= NULL
 dfClus$t2_champ5_sumName1= NULL
 dfClus$t2_champ5_sumName2= NULL
 
-#Delete the bans made
-
-#Delete bans t1
+#Eliminamos las columnas de baneo
+#Bans t1
 dfClus$t1_banName1 = NULL
 dfClus$t1_banName2 = NULL
 dfClus$t1_banName3 = NULL
 dfClus$t1_banName4 = NULL
 dfClus$t1_banName5 = NULL
 
-#Delete bans t2
+#Bans t2
 dfClus$t2_banName1 = NULL
 dfClus$t2_banName2 = NULL
 dfClus$t2_banName3 = NULL
 dfClus$t2_banName4 = NULL
 dfClus$t2_banName5 = NULL
 
-#Delete Dragon, Tower and baron kills per team
-dfClus$t1_towerKills = NULL
-dfClus$t1_inhibitorKills = NULL
-dfClus$t1_baronKills = NULL
-dfClus$t1_dragonKills = NULL
-dfClus$t1_riftHeraldKills = NULL
 
-dfClus$t2_towerKills = NULL
-dfClus$t2_inhibitorKills = NULL
-dfClus$t2_baronKills = NULL
-dfClus$t2_dragonKills = NULL
-dfClus$t2_riftHeraldKills = NULL
+#Una vez tenemos únicamente los datos que nos interesan, usamos la funcion table() de R para hacer conteo y sumar todos los elementos ordenandolos en los ejes de abscisa x = tiempo y = nombre de personaje.
 
-
-#Usar la funcion table de R para hacer conteo y sumar todos los elementos
+#Debido a la disposición de los datos tenemos que hacer este proceso de forma individual por cada columna y luego sumarlo.
 
 t1 = table(x=dfClus$gameDuration, y=dfClus$t1_champ1Name)
 t2 = table(x=dfClus$gameDuration, y=dfClus$t1_champ2Name)
@@ -646,59 +643,36 @@ t10 = table(x=dfClus$gameDuration, y=dfClus$t2_champ5Name)
 tt = t1+t2+t3+t4+t5+t6+t7+t8+t9+t10
 tt
 
-t1[1:5,1:5]
-#t2[1:5,1:5]
-#t3[1:5,1:5]
-#tt[1:5,1:5]
 
-
-#Dataframe con el conteo hecho
+#Ahora este objeto lo tenemos que transformar en dataframe para trabajar con el.
 dt = as.data.frame(tt)
 
 dt
 
-#Primer plot en el que no se distinguen bien los champs
+#Debido a la cantidad de campeones que hay en el juego si realizamos un plot  la información será poco visible y no podremos distinguir a penas nada como vemos en el siguiente mapa de calor.
 ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
 
 
-#Primer filtro. Eliminar campeones picks menor de 200
+#Para poner solución a esto vamos a aplicar un filtro. Eliminamos los campeones que hayan sido seleccionados menos de doscientas veces.
 best200 <- dt[!(dt$Freq < 200),]
 best200
-#se visualiza mejor, pero aun es dificil obtener informacion clara
+#Realizamos el plot para comprobar si se visualiza mejor. Vemos que hay cierta mejoría, pero aun es dificil discernir de forma clara qué campeones son mejores.
 pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile()
 pbest200
 
 
-#Segundo filtro. Eliminar campeones picks menor de 400
+#Aplicamos un segundo filtro en el que eliminamos campeones que hayan sido seleccionado menos de cuatrocientas veces.
 best400 <- dt[!(dt$Freq < 400),]
+best400
 
-#se visualiza mejor, Se  puede obtener informacion clara
+#En esta ocasión comprobamos que se visualiza mejor y se  puede obtener informacion clara sobre qué campeones son más seleccionados en partidas que duran poco tiempo.
 pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile()
 pbest400
 
-# OPCION 1 POSIBLE ANIMALADA
-# sacar media de picks por pj y quedarme con el x que coincida para 
-# obtener un unico punto y hacer clustering(clustering)
 
-  #  meanPicks = dt[(mean(dt$Freq)),]
+#Conclusión: Para analizar estos datos se hace necesario conocer un poco la mecánica del juego ya que en el existen roles dentro de los personajes, y esos roles explican ciertas anomalías que pueden darse en los resultados obtenidos. Por ejemplo, podemos observar que hay dos personajes concretos que se son seleccionados mucho en partidas de duración corta hasta duración larga. Tristana es ADC (personaje a distancia que hace daño) y Thresh es support (personaje que da soporte, que ayuda al ADC en su linea). Los datos pertenecen a la S6 (2016) y durante esa season debido a las mecánicas del juego ese dúo tenia muy buena sinergia por lo que era muy usual encontrarlos juntos en la linea de bot. Este dato, como otros, nos demuestra que los datos obtenidos y las conclusiones que podamos sacar son relevantes. 
 
-  #  meanPicks
-
-# OPCION 2 MAS PLAUSIBLE
-# meter a saco los datos en el algoritmo cluster, a ver que pasa 
-
-  #No se muestran los nombres. Ver los parametros
-clusClara = clara(x=best400 , k=3, metric = "manhattan", stand = TRUE, samples = 50, pamLike = TRUE)
-clusClara
-
-fviz_cluster(object = clusClara, ellipse.type = "t", geom = "point",
-             pointsize = 2.5) +
-  theme_bw() +
-  labs(title = "Resultados clustering CLARA") +
-  theme(legend.position = "none")
-
-# para hacer esto necesito los ID en lugar de los nombres porque da fallo de NAN
-    # km_k = kmeans(x=best400, centers = 4, nstart = 50)
+#Otro dato a tener en cuenta es que 7/12 de estos personajes son ADC. ¿Qué significa esto? Que se repitan tanto las mismas selecciones para el mismo rol quiere decir que para dicha posición hay personajes, en este caso siete, que son más apropiados para acortar la duración de la partida, mientras que las otras posiciones estan más abiertas a variar en la selección de personaje y esto no va a influir en la duración de la partida. Esto tiene sentido, puesto que, generalmente, quien lleva las riendas de la partida debido a que es quien hace más daño es precisamente el ADC, por lo tanto, el rol y el personaje adecuado afectan a la duración de la partida.
 
 
 ```
