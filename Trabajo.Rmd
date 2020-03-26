@@ -10,6 +10,8 @@ output: html_notebook
 #install.packages("dplyr")
 #install.packages("RJSONIO")
 #install.packages("factoextra")
+#install.packages("party")
+#install.packages("caTools")
 
 library(plyr)
 library(dplyr)
@@ -17,11 +19,11 @@ library(RJSONIO)
 library(ggplot2)
 library(cluster)
 library(factoextra)
-library(ggplot2)
-
+library(party)
+library(caTools)
 ```
 
-## Lectura de datasets.
+## Lectura de datasets. (Alicia)
 
 * Cargamos los datos del fichero csv con la información sobre las partidas en la variable "lol".
 * Cargamos los datos del fichero csv que contiene la correspondencia entre los nombres de los campeones y sus IDs en la variable "champions".
@@ -34,13 +36,18 @@ champions <- read.csv("./lolData/champs.csv")
 con <- file("./lolData/summoner_spell_info.json", "r")
 
 # Conversión a data frames
+df_games = data.frame(lol)
+head(df_games)
+
+df_champs = data.frame(champions)
+head(df_champs)
+
 df_summoners <- ldply(fromJSON(con), data.frame)
 close(con)
-df_games = data.frame(lol)
-df_champs = data.frame(champions)
+head(df_summoners)
 ```
 
-## Limpieza de datasets.
+## Limpieza de datasets. (Alicia)
 
 * Eliminar los atributos que no sean relevantes para nuestro análisis:
 
@@ -58,18 +65,21 @@ df_champs = data.frame(champions)
 df_games$gameId <- NULL # ID de la partida
 df_games$seasonId <- NULL # ID de la temporada en la que se juega la partida
 df_games$creationTime <- NULL # Fecha de creación de la partida
+head(df_games)
 
 # Dataframe de hechizos
 df_summoners$.id <- NULL # ID (duplicado) del hechizo
 df_summoners$summonerLevel <- NULL # Nivel en el que se desbloquea el hechizo para el jugador
 df_summoners$key <- NULL # Nombre de la variable interna que representa al hechizo
 df_summoners$description <- NULL # Descripción de la funcionalidad del hechizo dentro del juego
+head(df_summoners)
 ```
 
 * Eliminar los ejemplos de partidas cuya duración es menor a 15 minutos. Esto quiere decir que la partida ha finalizado por razones fuera de lo normal, por ejemplo, que algún jugador no esté conectado:
 
 ```{r}
 df_games <- df_games[!(df_games$gameDuration < 900),]
+head(df_games[order(df_games$gameDuration),])
 ```
 
 * Sustituir el orden numérico atribuido a los equipos (0, 1, 2) por una etiqueta que lo represente ("none", "blue", "red") en todas aquellos atributos cuyo valor sea uno de los dos equipos.
@@ -109,6 +119,8 @@ df_games$firstDragon[df_games$firstDragon == "2"] <- "red"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "0"] <- "none"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "1"] <- "blue"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "2"] <- "red"
+
+head(df_games)
 ```
 
 ```{r}
@@ -259,6 +271,8 @@ df_champs = rename(df_champs, t2_banName5 = 't2_banName4')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban5')
 df_games$t2_ban5 <- NULL
+
+head(df_games)
 ```
 
 * Sustituir el identificador numérico de los dos hechizos que cada uno de los jugadores de ambos equipos usarán en la partida por el nombre del hechizo en el juego:
@@ -404,19 +418,181 @@ df_summoners = rename(df_summoners, t2_champ5_sumName2 = 't2_champ5_sumName1')
 
 df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum2')
 df_games$t2_champ5_sum2 <- NULL
+
+head(df_games)
 ```
 
 ```{r}
 #Variables con los nombres en lugar de los ID 
 dfClusName = df_games
 dfAR = df_games
+df_games_dt = df_games
 ```
 
-#Chunk arboles de decisión. (Alicia)
+## Predicción del equipo ganador - Decision Trees (Alicia)
+
+Como preprocesado específico de esta sección:
+  * Convertimos a factores las columnas cuyo valor es el equipo implicado ("red", "blue", "none"). Este paso es necesario para poder utilizar la técnica de árboles de decisión, que no admite caracteres:
+  
 ```{r}
+df_games_dt <- df_games_dt[!(df_games_dt$winner == "none"),] # No existen partidas en las que no gane ningún equipo, pero las eliminamos para asegurarnos
+df_games_dt$winner <- factor(df_games_dt$winner, levels = c("red", "blue")) # Equipo ganador
 
+df_games_dt$firstBlood <- factor(df_games_dt$firstBlood, levels = c("red", "blue", "none")) # Equipo que consigue eliminar a un jugador del otro equipo primero
+df_games_dt$firstTower <- factor(df_games_dt$firstTower, levels = c("red", "blue", "none")) # Equipo que consigue derribar una torre enemiga primero
+df_games_dt$firstInhibitor <- factor(df_games_dt$firstInhibitor, levels = c("red", "blue", "none")) # Equipo que consigue derribar un inhibidor enemigo primero
+df_games_dt$firstBaron <- factor(df_games_dt$firstBaron, levels = c("red", "blue", "none")) # Equipo que consigue eliminar al Baron (monstruo neutral) primero
+df_games_dt$firstDragon <- factor(df_games_dt$firstDragon, levels = c("red", "blue", "none")) # Equipo que consigue eliminar a un dragón (monstruo neutral) primero
+df_games_dt$firstRiftHerald <- factor(df_games_dt$firstRiftHerald, levels = c("red", "blue", "none")) # Equipo que consigue eliminar al Heraldo (monstruo neutral)
+
+head(df_games_dt)
 ```
 
+  * Dividimos el dataframe en un subconjunto de entrenamiento (df_games_dt_train) y otro de pruebas (df_games_dt_test) que representan el 70% y el 30% de los datos del dataframe original respectivamente:
+  
+```{r}
+set.seed(0) # Semilla para que la distribución aleatoria sea la misma
+sample = sample.split(df_games_dt, SplitRatio = 0.70) # División del dataframe
+
+df_games_dt_train = subset(df_games_dt, sample == TRUE) # Dataframe de entrenamiento
+head(df_games_dt_train)
+
+df_games_dt_test = subset(df_games_dt, sample == FALSE) # Dataframe de pruebas
+head(df_games_dt_test)
+```
+
+A continuación, generaremos una serie de modelos de árboles de decisión que posteriormente compararemos para obtener el mejor.
+
+* En primer lugar, generaremos modelos relacionados con los objetivos del juego. Esto son estructuras (torres e inhibidores) y monstruos neutrales (Baron, dragones y Heraldo). El objetivo final de este juego es eliminar el nexo, una que se encuentra en la base enemiga. De camino al nexo se encuentran torres e inhibidores para dificultar la llegada a este. Los monstruos neutrales de la jungla otorgan al equipo que lo elimine una bonificación extra que ayuda tanto a destruir estructuras como a eliminar jugadores enemigos.
+
+  - Árbol de decisión según las estructuras (primera sangre, primera torre y primer inhibidor):
+
+```{r}
+tree_structures <- ctree(winner ~ firstBlood + firstTower + firstInhibitor, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_structures <- predict(tree_structures, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_structures == df_games_dt_test$winner) # Porcentaje de aciertos
+
+png("tree_structures.png", res = 80, height = 800, width = 1600) # Visualización del árbol de decisión creado en el archivo png que se indica
+plot(tree_structures)
+```
+
+  - Árbol de decisión según los monstruos neutrales (primer Baron, primer dragón y primer heraldo):
+  
+```{r}
+tree_monsters <- ctree(winner ~ firstBaron + firstDragon + firstRiftHerald, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_monsters <- predict(tree_monsters, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_monsters == df_games_dt_test$winner) # Porcentaje de aciertos
+
+png("tree_monsters.png", res = 80, height = 1000, width = 2250) # Visualización del árbol de decisión creado en el archivo png que se indica
+plot(tree_monsters)
+```
+
+  - Árbol de decisión según el número de Barones que elimina cada equipo:
+
+```{r}
+tree_barons <- ctree(winner ~ t1_baronKills + t2_baronKills, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_barons <- predict(tree_barons, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_barons == df_games_dt_test$winner) # Porcentaje de aciertos
+
+png("tree_barons.png", res = 80, height = 800, width = 1600) # Visualización del árbol de decisión creado en el archivo png que se indica
+plot(tree_barons)
+```
+
+  - Árbol de decisión según el número de dragones que elimina cada equipo:
+  
+```{r}
+tree_dragons <- ctree(winner ~ t1_dragonKills + t2_dragonKills, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_dragons <- predict(tree_dragons, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_dragons == df_games_dt_test$winner) # Porcentaje de aciertos
+
+png("tree_dragons.png", res = 80, height = 800, width = 1600) # Visualización del árbol de decisión creado en el archivo png que se indica
+plot(tree_dragons)
+```
+
+  - Árbol de decisión uniendo todo lo utilizado anteriormente:
+
+```{r}
+tree_objectives <- ctree(winner ~ firstBlood + firstTower + firstInhibitor + firstBaron + firstDragon + t1_baronKills + t2_baronKills + t1_dragonKills + t2_dragonKills, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_objectives <- predict(tree_objectives, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_objectives == df_games_dt_test$winner) # Porcentaje de aciertos
+
+png("tree_objectives.png", res = 80, height = 1000, width = 8000) # Visualización del árbol de decisión creado en el archivo png que se indica
+plot(tree_objectives)
+```
+
+En este primer subconjunto de modelos vemos cómo existe una gran relación entre sus datos y el ganador de la partida ya que el porcentaje de aciertos supera el 91%. Cabe destacar que el modelo basado en estructuras destaca dentro de este grupo ya que consigue por sí solo un porcentaje superior al 90%, tan solo un 1% de diferencia respecto al modelo que le suma los datos de todos los demás objetivos del juego.
+
+* En segundo lugar, generaremos modelos relacionados con las selecciones de los jugadores. Esto son campeones (personajes que utilizarán durante la partida), bans (personajes que prohibes escoger al equipo contrario) y hechizos que escoge utilizar cada jugador (pequeñas funcionalidades específicas dentro de la partida).
+
+  - Árbol de decisión según los personajes que utilizan en la partida los jugadores de ambos equipos:
+  
+```{r}
+# ATENCIÓN. ESTE CHUNK PUEDE TARDAR VARIOS MINUTOS EN EJECUTAR!
+tree_champs <- ctree(winner ~ t1_champ1Name + t1_champ2Name + t1_champ3Name + t1_champ4Name + t1_champ5Name + t2_champ1Name + t2_champ2Name + t2_champ3Name + t2_champ4Name + t2_champ5Name, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_champs <- predict(tree_champs, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_champs == df_games_dt_test$winner) # Porcentaje de aciertos
+```
+
+  - Árbol de decisión según los campeones baneados por los jugadores de ambos equipos:
+  
+```{r}
+# ATENCIÓN. ESTE CHUNK PUEDE TARDAR VARIOS MINUTOS EN EJECUTAR!
+tree_bans <- ctree(winner ~ t1_banName1 + t1_banName2 + t1_banName3 + t1_banName4 + t1_banName5 + t2_banName1 + t2_banName2 + t2_banName3 + t2_banName4 + t2_banName5, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_bans <- predict(tree_bans, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_bans == df_games_dt_test$winner) # Porcentaje de aciertos
+```
+
+  - Árbol de decisión según los hechizos que utilizan en la partida los jugadores de ambos equipos:
+  
+```{r}
+tree_summoners <- ctree(winner ~ t1_champ1_sumName1 + t1_champ1_sumName2 + t1_champ2_sumName1 + t1_champ2_sumName2 + t1_champ3_sumName1 + t1_champ3_sumName2 + t1_champ4_sumName1 + t1_champ4_sumName2 + t1_champ5_sumName1 + t1_champ5_sumName2 + t2_champ1_sumName1 + t2_champ1_sumName2 + t2_champ2_sumName1 + t2_champ2_sumName2 + t2_champ3_sumName1 + t2_champ3_sumName2 + t2_champ4_sumName1 + t2_champ4_sumName2 + t2_champ5_sumName1 + t2_champ5_sumName2, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_summoners <- predict(tree_summoners, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_summoners == df_games_dt_test$winner) # Porcentaje de aciertos
+```
+
+  - Árbol de decisión uniendo todo lo utilizado anteriormente: 
+  
+```{r}
+# ATENCIÓN. ESTE CHUNK PUEDE TARDAR VARIOS MINUTOS EN EJECUTAR!
+tree_selections <- ctree(winner ~ t1_champ1Name + t1_champ2Name + t1_champ3Name + t1_champ4Name + t1_champ5Name + t2_champ1Name + t2_champ2Name + t2_champ3Name + t2_champ4Name + t2_champ5Name + t1_banName1 + t1_banName2 + t1_banName3 + t1_banName4 + t1_banName5 + t2_banName1 + t2_banName2 + t2_banName3 + t2_banName4 + t2_banName5 + t1_champ1_sumName1 + t1_champ1_sumName2 + t1_champ2_sumName1 + t1_champ2_sumName2 + t1_champ3_sumName1 + t1_champ3_sumName2 + t1_champ4_sumName1 + t1_champ4_sumName2 + t1_champ5_sumName1 + t1_champ5_sumName2 + t2_champ1_sumName1 + t2_champ1_sumName2 + t2_champ2_sumName1 + t2_champ2_sumName2 + t2_champ3_sumName1 + t2_champ3_sumName2 + t2_champ4_sumName1 + t2_champ4_sumName2 + t2_champ5_sumName1 + t2_champ5_sumName2, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_selections <- predict(tree_selections, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_selections == df_games_dt_test$winner) # Porcentaje de aciertos
+```
+
+En este segundo subconjunto de modelos vemos cómo NO existe una gran relación entre sus datos y el ganador de la partida ya que el porcentaje de aciertos ronda el 50%, un porcentaje realmente bajo. Cabe destacar que el modelo basado en campeones escogidos por los jugadores destaca relativamente dentro de este grupo ya que consigue por sí solo un porcentaje superior al conseguido al unir todos los datos.
+
+* En tercer lugar, generaremos un modelo a partir de todos los datos anteriores.
+
+```{r}
+# ATENCIÓN. ESTE CHUNK PUEDE TARDAR VARIOS MINUTOS EN EJECUTAR!
+tree_all <- ctree(winner ~ firstBlood + firstTower + firstInhibitor + firstBaron + firstDragon + t1_baronKills + t2_baronKills + t1_dragonKills + t2_dragonKills + t1_champ1Name + t1_champ2Name + t1_champ3Name + t1_champ4Name + t1_champ5Name + t2_champ1Name + t2_champ2Name + t2_champ3Name + t2_champ4Name + t2_champ5Name + t1_banName1 + t1_banName2 + t1_banName3 + t1_banName4 + t1_banName5 + t2_banName1 + t2_banName2 + t2_banName3 + t2_banName4 + t2_banName5 + t1_champ1_sumName1 + t1_champ1_sumName2 + t1_champ2_sumName1 + t1_champ2_sumName2 + t1_champ3_sumName1 + t1_champ3_sumName2 + t1_champ4_sumName1 + t1_champ4_sumName2 + t1_champ5_sumName1 + t1_champ5_sumName2 + t2_champ1_sumName1 + t2_champ1_sumName2 + t2_champ2_sumName1 + t2_champ2_sumName2 + t2_champ3_sumName1 + t2_champ3_sumName2 + t2_champ4_sumName1 + t2_champ4_sumName2 + t2_champ5_sumName1 + t2_champ5_sumName2, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_all <- predict(tree_all, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_all == df_games_dt_test$winner) # Porcentaje de aciertos
+```
+
+Lamentablemente, no supone una mejora respecto a los datos de porcentajes mostrados anteriormente si no que lo empeora ligeramente.
+
+* En último lugar, generaremos un modelo a partir de los datos que han conseguido mejores datos en los dos primeros subconjuntos: los datos de objetivos y los datos de los campeones utilizados en la partida.
+
+```{r}
+# ATENCIÓN. ESTE CHUNK PUEDE TARDAR VARIOS MINUTOS EN EJECUTAR!
+tree_best <- ctree(winner ~ firstBlood + firstTower + firstInhibitor + firstBaron + firstDragon + t1_baronKills + t2_baronKills + t1_dragonKills + t2_dragonKills + t1_champ1Name + t1_champ2Name + t1_champ3Name + t1_champ4Name + t1_champ5Name + t2_champ1Name + t2_champ2Name + t2_champ3Name + t2_champ4Name + t2_champ5Name, data = df_games_dt_train) # Entrenamiento del modelo de árbol de decisión
+predictions_best <- predict(tree_best, df_games_dt_test) # Predicciones sobre el conjunto de pruebas
+
+mean(predictions_best == df_games_dt_test$winner) # Porcentaje de aciertos
+```
+
+Finalmente, obtenemos una sutil mejora para el porcentaje que obtuvimos anteriormente al utilizar únicamente los datos sobre objetivos. Si buscamos modelos más rápidos y que utilicen menos variables, podríamos optar por el anteriormente nombrado modelo construido a partir de los datos sobre objetivos (model_objectives) con un 91,81% de aciertos o incluso con el modelo construido a partir de los datos sobre estructuras (model_structures) con un 90,01% de aciertos.
 
 #Histogramas comparativos (María)
 ```{r}
