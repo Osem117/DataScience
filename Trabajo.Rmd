@@ -6,10 +6,10 @@ output: html_notebook
 ## Instalación e importación de las librerías necesarias.
 
 ```{r}
-
-#install.packages("RJSONIO")
 #install.packages("plyr")
 #install.packages("dplyr")
+#install.packages("RJSONIO")
+#install.packages("factoextra")
 
 library(plyr)
 library(dplyr)
@@ -17,7 +17,6 @@ library(RJSONIO)
 library(ggplot2)
 library(cluster)
 library(factoextra)
-
 ```
 
 ## Lectura de datasets.
@@ -41,350 +40,375 @@ df_champs = data.frame(champions)
 
 ## Limpieza de datasets.
 
-* Eliminar los atributos que no sean relevantes para nuestro análisis.
-* Eliminar los ejemplos de partidas cuya duración es menor a 15 minutos. Esto quiere decir que la partida ha finalizado por razones fuera de lo normal, por ejemplo, que algún jugador no esté conectado.
-* Sustituir el orden numérico atribuido a los equipos (0, 1, 2) por una etiqueta que lo represente ("none", "blue", "red").
-* Sustituir el identificador numérico de los campeones seleccionados y baneados por cada uno de los jugadores de ambos equipos por el nombre del campeón en el juego.
-* Sustituir el identificador numérico de los dos hechizos que cada uno de los jugadores de ambos equipos usarán en la partida por el nombre del hechizo en el juego.
+* Eliminar los atributos que no sean relevantes para nuestro análisis:
 
+  Para el dataframe de partidas (df_games):
+  - El ID de las partidas.
+  - La temporada en la que se jugó la partida, ya que todos nuestros datos son de la temporada 9.
+  - La fecha de inicio de la partida, que no es relevante en comparación con otros datos como la duración de la partida y además sabemos que todas las partidas se jugaron durante el mismo año ya que pertenecen a la misma temporada.
+
+
+  Para el dataframe de hechizos (df_summonners):
+  - Eliminamos todas las columnas excepto las que contienen el nombre del hechizo y su ID para poder realizar la transformación en el dataframe de partidas más adelante.
 
 ```{r}
-# Eliminamos las columnas irrelevantes
-df_games$gameId <- NULL
-df_games$seasonId <- NULL
-df_games$creationTime <- NULL
+# Dataframe de partidas
+df_games$gameId <- NULL # ID de la partida
+df_games$seasonId <- NULL # ID de la temporada en la que se juega la partida
+df_games$creationTime <- NULL # Fecha de creación de la partida
 
-df_summoners$.id <- NULL
-df_summoners$summonerLevel <- NULL
-df_summoners$key <- NULL
-df_summoners$description <- NULL
+# Dataframe de hechizos
+df_summoners$.id <- NULL # ID (duplicado) del hechizo
+df_summoners$summonerLevel <- NULL # Nivel en el que se desbloquea el hechizo para el jugador
+df_summoners$key <- NULL # Nombre de la variable interna que representa al hechizo
+df_summoners$description <- NULL # Descripción de la funcionalidad del hechizo dentro del juego
+```
 
+* Eliminar los ejemplos de partidas cuya duración es menor a 15 minutos. Esto quiere decir que la partida ha finalizado por razones fuera de lo normal, por ejemplo, que algún jugador no esté conectado:
+
+```{r}
 df_games <- df_games[!(df_games$gameDuration < 900),]
+```
 
+* Sustituir el orden numérico atribuido a los equipos (0, 1, 2) por una etiqueta que lo represente ("none", "blue", "red") en todas aquellos atributos cuyo valor sea uno de los dos equipos.
+
+```{r}
+# Ganador de la partida
 df_games$winner[df_games$winner == "0"] <- "none"
 df_games$winner[df_games$winner == "1"] <- "blue"
 df_games$winner[df_games$winner == "2"] <- "red"
 
+# Equipo que consigue eliminar a un jugador del equipo contrario primero (esto conlleva una recompensa extra dentro del juego)
 df_games$firstBlood[df_games$firstBlood == "0"] <- "none"
 df_games$firstBlood[df_games$firstBlood == "1"] <- "blue"
 df_games$firstBlood[df_games$firstBlood == "2"] <- "red"
 
+# Equipo que consigue derrumbar una torre del equipo contrario primero (esto conlleva una recompensa extra dentro del juego)
 df_games$firstTower[df_games$firstTower == "0"] <- "none"
 df_games$firstTower[df_games$firstTower == "1"] <- "blue"
 df_games$firstTower[df_games$firstTower == "2"] <- "red"
 
+# Equipo que consigue derrumbar un inhibidor del equipo contrario primero (los inhibidores se encuentran muy cerca de la estructura final que hay que derrumbar para terminar la partida)
 df_games$firstInhibitor[df_games$firstInhibitor == "0"] <- "none"
 df_games$firstInhibitor[df_games$firstInhibitor == "1"] <- "blue"
 df_games$firstInhibitor[df_games$firstInhibitor == "2"] <- "red"
 
+# Equipo que consigue eliminar primero al monstruo de la jungla denominado como Baron (este monstruo otorga una gran mejora de estadísticas al equipo que lo haya eliminado)
 df_games$firstBaron[df_games$firstBaron == "0"] <- "none"
 df_games$firstBaron[df_games$firstBaron == "1"] <- "blue"
 df_games$firstBaron[df_games$firstBaron == "2"] <- "red"
 
+# Equipo que consigue eliminar primero a alguno de los dragones que aparecen (estos monstruos otorgan pequeñas mejoras de estadísiticas al equipo que los haya eliminado)
 df_games$firstDragon[df_games$firstDragon == "0"] <- "none"
 df_games$firstDragon[df_games$firstDragon == "1"] <- "blue"
 df_games$firstDragon[df_games$firstDragon == "2"] <- "red"
 
+# Equipo que consigue eliminar al monstruo de la jungla denominado como Heraldo (solo aparece 1 durante la partida y ayuda al equipo que lo haya eliminado a derrumbar estructuras tales como torres e inhibidores)
 df_games$firstRiftHerald[df_games$firstRiftHerald == "0"] <- "none"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "1"] <- "blue"
 df_games$firstRiftHerald[df_games$firstRiftHerald == "2"] <- "red"
-
-
-#Para posterior manipulación de clustering sin cambiar id -> nombre
-dfClus = df_games
-
 ```
 
-#Cambio de id -> nombre de champions 
 ```{r}
+#Para posterior manipulación de clustering sin cambiar id -> nombre
+dfClus = df_games
+```
 
+* Sustituir el identificador numérico de los campeones seleccionados y baneados por cada uno de los jugadores de ambos equipos por el nombre del campeón en el juego:
+  En este caso utilizamos los datos del dataframe de campeones (df_champs) para reemplazar los datos del dataframe de partidas (df_games). Para realizar cada uno de los reemplazos en cada una de las columnas del dataframe de partidas que lo requieren, renombramos la columna del dataframe de campeones que contiene el ID del campeón para que coincida con el nombre de la columna cuyos ID queremos reemplazar en el dataframe de partidas. Además, renombramos la columna del dataframe de campeones que contiene el nombre del campeón por el nombre que queramos que tenga dicha columna en el dataframe de partidas. A continuación, realizamos un left join de ambos datasets a través de la columna de IDs que queremos sustituir y que ahora se llama igual en ambos dataframes. De esta manera, añadirá una nueva columna con los nombres de los campeones a partir de su ID según los datos en el dataframe de campeones. Finalmente, eliminamos la anterior columna que contenía los IDs y queríamos sustituir.
 
-df_champs = rename(df_champs, t1_champ1id = 'id')
-df_champs = rename(df_champs, t1_champ1Name = 'name')
+```{r}
+# Campeón utilizado por el jugador 1 del equipo azul
+df_champs = rename(df_champs, t1_champ1id = 'id') # (1) Renombramos la columna de IDs del dataframe de campeones por el nombre de la columna que queremos sustituir en el dataframe de partidas
+df_champs = rename(df_champs, t1_champ1Name = 'name') # (2) Renombramos la columna de nombres del dataframe de campeones por el nombre que queramos que tenga la nueva columna de nombres en el dataframe de partidas
 
-df_games <- left_join(df_games, df_champs, by = 't1_champ1id')
-df_games$t1_champ1id <- NULL
+df_games <- left_join(df_games, df_champs, by = 't1_champ1id') # (3) Realizamos un left join entre ambos datasets a través de la columna que ahora se llama igual en ambos dataframes y que queremos sustituir (columnas que contienen IDs). Esto resultará en la adición de una nueva columna nombrada como hayamos decidido en el paso 2 y que contiene el nombre de cada campeón según su ID.
+df_games$t1_champ1id <- NULL # (4) Eliminamos la columna que contiene los IDs de los campeones que queríamos sustituir en un primer momento.
 
-
+# Campeón utilizado por el jugador 2 del equipo azul
 df_champs = rename(df_champs, t1_champ2id = 't1_champ1id')
 df_champs = rename(df_champs, t1_champ2Name = 't1_champ1Name')
 
 df_games <- left_join(df_games, df_champs, by = 't1_champ2id')
 df_games$t1_champ2id <- NULL
 
-
+# Campeón utilizado por el jugador 3 del equipo azul
 df_champs = rename(df_champs, t1_champ3id = 't1_champ2id')
 df_champs = rename(df_champs, t1_champ3Name = 't1_champ2Name')
 
 df_games <- left_join(df_games, df_champs, by = 't1_champ3id')
 df_games$t1_champ3id <- NULL
 
-
+# Campeón utilizado por el jugador 4 del equipo azul
 df_champs = rename(df_champs, t1_champ4id = 't1_champ3id')
 df_champs = rename(df_champs, t1_champ4Name = 't1_champ3Name')
 
 df_games <- left_join(df_games, df_champs, by = 't1_champ4id')
 df_games$t1_champ4id <- NULL
 
-
+# Campeón utilizado por el jugador 5 del equipo azul
 df_champs = rename(df_champs, t1_champ5id = 't1_champ4id')
 df_champs = rename(df_champs, t1_champ5Name = 't1_champ4Name')
 
 df_games <- left_join(df_games, df_champs, by = 't1_champ5id')
 df_games$t1_champ5id <- NULL
 
-
-df_summoners = rename(df_summoners, t1_champ1_sum1 = 'id')
-df_summoners = rename(df_summoners, t1_champ1_sumName1 = 'name')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ1_sum1')
-df_games$t1_champ1_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ1_sum2 = 't1_champ1_sum1')
-df_summoners = rename(df_summoners, t1_champ1_sumName2 = 't1_champ1_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ1_sum2')
-df_games$t1_champ1_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ2_sum1 = 't1_champ1_sum2')
-df_summoners = rename(df_summoners, t1_champ2_sumName1 = 't1_champ1_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ2_sum1')
-df_games$t1_champ2_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ2_sum2 = 't1_champ2_sum1')
-df_summoners = rename(df_summoners, t1_champ2_sumName2 = 't1_champ2_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ2_sum2')
-df_games$t1_champ2_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ3_sum1 = 't1_champ2_sum2')
-df_summoners = rename(df_summoners, t1_champ3_sumName1 = 't1_champ2_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ3_sum1')
-df_games$t1_champ3_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ3_sum2 = 't1_champ3_sum1')
-df_summoners = rename(df_summoners, t1_champ3_sumName2 = 't1_champ3_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ3_sum2')
-df_games$t1_champ3_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ4_sum1 = 't1_champ3_sum2')
-df_summoners = rename(df_summoners, t1_champ4_sumName1 = 't1_champ3_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ4_sum1')
-df_games$t1_champ4_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ4_sum2 = 't1_champ4_sum1')
-df_summoners = rename(df_summoners, t1_champ4_sumName2 = 't1_champ4_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ4_sum2')
-df_games$t1_champ4_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ5_sum1 = 't1_champ4_sum2')
-df_summoners = rename(df_summoners, t1_champ5_sumName1 = 't1_champ4_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ5_sum1')
-df_games$t1_champ5_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t1_champ5_sum2 = 't1_champ5_sum1')
-df_summoners = rename(df_summoners, t1_champ5_sumName2 = 't1_champ5_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't1_champ5_sum2')
-df_games$t1_champ5_sum2 <- NULL
-
-
+# Campeón baneado por el jugador 1 del equipo azul
 df_champs = rename(df_champs, t1_ban1 = 't1_champ5id')
 df_champs = rename(df_champs, t1_banName1 = 't1_champ5Name')
 
 df_games <- left_join(df_games, df_champs, by = 't1_ban1')
 df_games$t1_ban1 <- NULL
 
-
+# Campeón baneado por el jugador 2 del equipo azul
 df_champs = rename(df_champs, t1_ban2 = 't1_ban1')
 df_champs = rename(df_champs, t1_banName2 = 't1_banName1')
 
 df_games <- left_join(df_games, df_champs, by = 't1_ban2')
 df_games$t1_ban2 <- NULL
 
-
+# Campeón baneado por el jugador 3 del equipo azul
 df_champs = rename(df_champs, t1_ban3 = 't1_ban2')
 df_champs = rename(df_champs, t1_banName3 = 't1_banName2')
 
 df_games <- left_join(df_games, df_champs, by = 't1_ban3')
 df_games$t1_ban3 <- NULL
 
-
+# Campeón baneado por el jugador 4 del equipo azul
 df_champs = rename(df_champs, t1_ban4 = 't1_ban3')
 df_champs = rename(df_champs, t1_banName4 = 't1_banName3')
 
 df_games <- left_join(df_games, df_champs, by = 't1_ban4')
 df_games$t1_ban4 <- NULL
 
-
+# Campeón baneado por el jugador 5 del equipo azul
 df_champs = rename(df_champs, t1_ban5 = 't1_ban4')
 df_champs = rename(df_champs, t1_banName5 = 't1_banName4')
 
 df_games <- left_join(df_games, df_champs, by = 't1_ban5')
 df_games$t1_ban5 <- NULL
 
-
+# Campeón utilizado por el jugador 1 del equipo rojo
 df_champs = rename(df_champs, t2_champ1id = 't1_ban5')
 df_champs = rename(df_champs, t2_champ1Name = 't1_banName5')
 
 df_games <- left_join(df_games, df_champs, by = 't2_champ1id')
 df_games$t2_champ1id <- NULL
 
-
+# Campeón utilizado por el jugador 2 del equipo rojo
 df_champs = rename(df_champs, t2_champ2id = 't2_champ1id')
 df_champs = rename(df_champs, t2_champ2Name = 't2_champ1Name')
 
 df_games <- left_join(df_games, df_champs, by = 't2_champ2id')
 df_games$t2_champ2id <- NULL
 
-
+# Campeón utilizado por el jugador 3 del equipo rojo
 df_champs = rename(df_champs, t2_champ3id = 't2_champ2id')
 df_champs = rename(df_champs, t2_champ3Name = 't2_champ2Name')
 
 df_games <- left_join(df_games, df_champs, by = 't2_champ3id')
 df_games$t2_champ3id <- NULL
 
-
+# Campeón utilizado por el jugador 4 del equipo rojo
 df_champs = rename(df_champs, t2_champ4id = 't2_champ3id')
 df_champs = rename(df_champs, t2_champ4Name = 't2_champ3Name')
 
 df_games <- left_join(df_games, df_champs, by = 't2_champ4id')
 df_games$t2_champ4id <- NULL
 
-
+# Campeón utilizado por el jugador 5 del equipo rojo
 df_champs = rename(df_champs, t2_champ5id = 't2_champ4id')
 df_champs = rename(df_champs, t2_champ5Name = 't2_champ4Name')
 
 df_games <- left_join(df_games, df_champs, by = 't2_champ5id')
 df_games$t2_champ5id <- NULL
 
-
-df_summoners = rename(df_summoners, t2_champ1_sum1 = 't1_champ5_sum2')
-df_summoners = rename(df_summoners, t2_champ1_sumName1 = 't1_champ5_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ1_sum1')
-df_games$t2_champ1_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ1_sum2 = 't2_champ1_sum1')
-df_summoners = rename(df_summoners, t2_champ1_sumName2 = 't2_champ1_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ1_sum2')
-df_games$t2_champ1_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ2_sum1 = 't2_champ1_sum2')
-df_summoners = rename(df_summoners, t2_champ2_sumName1 = 't2_champ1_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ2_sum1')
-df_games$t2_champ2_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ2_sum2 = 't2_champ2_sum1')
-df_summoners = rename(df_summoners, t2_champ2_sumName2 = 't2_champ2_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ2_sum2')
-df_games$t2_champ2_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ3_sum1 = 't2_champ2_sum2')
-df_summoners = rename(df_summoners, t2_champ3_sumName1 = 't2_champ2_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ3_sum1')
-df_games$t2_champ3_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ3_sum2 = 't2_champ3_sum1')
-df_summoners = rename(df_summoners, t2_champ3_sumName2 = 't2_champ3_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ3_sum2')
-df_games$t2_champ3_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ4_sum1 = 't2_champ3_sum2')
-df_summoners = rename(df_summoners, t2_champ4_sumName1 = 't2_champ3_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ4_sum1')
-df_games$t2_champ4_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ4_sum2 = 't2_champ4_sum1')
-df_summoners = rename(df_summoners, t2_champ4_sumName2 = 't2_champ4_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ4_sum2')
-df_games$t2_champ4_sum2 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ5_sum1 = 't2_champ4_sum2')
-df_summoners = rename(df_summoners, t2_champ5_sumName1 = 't2_champ4_sumName2')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum1')
-df_games$t2_champ5_sum1 <- NULL
-
-
-df_summoners = rename(df_summoners, t2_champ5_sum2 = 't2_champ5_sum1')
-df_summoners = rename(df_summoners, t2_champ5_sumName2 = 't2_champ5_sumName1')
-
-df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum2')
-df_games$t2_champ5_sum2 <- NULL
-
-
+# Campeón baneado por el jugador 1 del equipo rojo
 df_champs = rename(df_champs, t2_ban1 = 't2_champ5id')
 df_champs = rename(df_champs, t2_banName1 = 't2_champ5Name')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban1')
 df_games$t2_ban1 <- NULL
 
-
+# Campeón baneado por el jugador 2 del equipo rojo
 df_champs = rename(df_champs, t2_ban2 = 't2_ban1')
 df_champs = rename(df_champs, t2_banName2 = 't2_banName1')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban2')
 df_games$t2_ban2 <- NULL
 
-
+# Campeón baneado por el jugador 3 del equipo rojo
 df_champs = rename(df_champs, t2_ban3 = 't2_ban2')
 df_champs = rename(df_champs, t2_banName3 = 't2_banName2')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban3')
 df_games$t2_ban3 <- NULL
 
-
+# Campeón baneado por el jugador 4 del equipo rojo
 df_champs = rename(df_champs, t2_ban4 = 't2_ban3')
 df_champs = rename(df_champs, t2_banName4 = 't2_banName3')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban4')
 df_games$t2_ban4 <- NULL
 
-
+# Campeón baneado por el jugador 5 del equipo rojo
 df_champs = rename(df_champs, t2_ban5 = 't2_ban4')
 df_champs = rename(df_champs, t2_banName5 = 't2_banName4')
 
 df_games <- left_join(df_games, df_champs, by = 't2_ban5')
 df_games$t2_ban5 <- NULL
+```
 
+* Sustituir el identificador numérico de los dos hechizos que cada uno de los jugadores de ambos equipos usarán en la partida por el nombre del hechizo en el juego:
+  Seguimos el mismo planteamiento que el paso anterior, esta vez para sustituir los IDs de los hechizos que utilizan los jugadores en el dataframe de partidas (df_games), mediante los datos en el dataset de hechizos (df_summoners). 
 
+```{r}
+# Hechizo principal utilizado por el jugador 1 del equipo azul
+df_summoners = rename(df_summoners, t1_champ1_sum1 = 'id') # (1) Renombramos la columna de IDs del dataframe de hechizos por el nombre de la columna que queremos sustituir en el dataframe de partidas
+df_summoners = rename(df_summoners, t1_champ1_sumName1 = 'name') # (2) Renombramos la columna de nombres del dataframe de hechizos por el nombre que queramos que tenga la nueva columna de nombres en el dataframe de partidas
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ1_sum1') # (3) Realizamos un left join entre ambos datasets a través de la columna que ahora se llama igual en ambos dataframes y que queremos sustituir (columnas que contienen IDs). Esto resultará en la adición de una nueva columna nombrada como hayamos decidido en el paso 2 y que contiene el nombre de cada hechizo según su ID.
+df_games$t1_champ1_sum1 <- NULL # (4) Eliminamos la columna que contiene los IDs de los hechizos que queríamos sustituir en un primer momento.
+
+# Hechizo secundario utilizado por el jugador 1 del equipo azul
+df_summoners = rename(df_summoners, t1_champ1_sum2 = 't1_champ1_sum1')
+df_summoners = rename(df_summoners, t1_champ1_sumName2 = 't1_champ1_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ1_sum2')
+df_games$t1_champ1_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 2 del equipo azul
+df_summoners = rename(df_summoners, t1_champ2_sum1 = 't1_champ1_sum2')
+df_summoners = rename(df_summoners, t1_champ2_sumName1 = 't1_champ1_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ2_sum1')
+df_games$t1_champ2_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 2 del equipo azul
+df_summoners = rename(df_summoners, t1_champ2_sum2 = 't1_champ2_sum1')
+df_summoners = rename(df_summoners, t1_champ2_sumName2 = 't1_champ2_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ2_sum2')
+df_games$t1_champ2_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 3 del equipo azul
+df_summoners = rename(df_summoners, t1_champ3_sum1 = 't1_champ2_sum2')
+df_summoners = rename(df_summoners, t1_champ3_sumName1 = 't1_champ2_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ3_sum1')
+df_games$t1_champ3_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 3 del equipo azul
+df_summoners = rename(df_summoners, t1_champ3_sum2 = 't1_champ3_sum1')
+df_summoners = rename(df_summoners, t1_champ3_sumName2 = 't1_champ3_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ3_sum2')
+df_games$t1_champ3_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 4 del equipo azul
+df_summoners = rename(df_summoners, t1_champ4_sum1 = 't1_champ3_sum2')
+df_summoners = rename(df_summoners, t1_champ4_sumName1 = 't1_champ3_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ4_sum1')
+df_games$t1_champ4_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 4 del equipo azul
+df_summoners = rename(df_summoners, t1_champ4_sum2 = 't1_champ4_sum1')
+df_summoners = rename(df_summoners, t1_champ4_sumName2 = 't1_champ4_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ4_sum2')
+df_games$t1_champ4_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 5 del equipo azul
+df_summoners = rename(df_summoners, t1_champ5_sum1 = 't1_champ4_sum2')
+df_summoners = rename(df_summoners, t1_champ5_sumName1 = 't1_champ4_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ5_sum1')
+df_games$t1_champ5_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 5 del equipo azul
+df_summoners = rename(df_summoners, t1_champ5_sum2 = 't1_champ5_sum1')
+df_summoners = rename(df_summoners, t1_champ5_sumName2 = 't1_champ5_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't1_champ5_sum2')
+df_games$t1_champ5_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 1 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ1_sum1 = 't1_champ5_sum2')
+df_summoners = rename(df_summoners, t2_champ1_sumName1 = 't1_champ5_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ1_sum1')
+df_games$t2_champ1_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 1 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ1_sum2 = 't2_champ1_sum1')
+df_summoners = rename(df_summoners, t2_champ1_sumName2 = 't2_champ1_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ1_sum2')
+df_games$t2_champ1_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 2 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ2_sum1 = 't2_champ1_sum2')
+df_summoners = rename(df_summoners, t2_champ2_sumName1 = 't2_champ1_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ2_sum1')
+df_games$t2_champ2_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 2 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ2_sum2 = 't2_champ2_sum1')
+df_summoners = rename(df_summoners, t2_champ2_sumName2 = 't2_champ2_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ2_sum2')
+df_games$t2_champ2_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 3 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ3_sum1 = 't2_champ2_sum2')
+df_summoners = rename(df_summoners, t2_champ3_sumName1 = 't2_champ2_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ3_sum1')
+df_games$t2_champ3_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 3 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ3_sum2 = 't2_champ3_sum1')
+df_summoners = rename(df_summoners, t2_champ3_sumName2 = 't2_champ3_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ3_sum2')
+df_games$t2_champ3_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 4 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ4_sum1 = 't2_champ3_sum2')
+df_summoners = rename(df_summoners, t2_champ4_sumName1 = 't2_champ3_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ4_sum1')
+df_games$t2_champ4_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 4 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ4_sum2 = 't2_champ4_sum1')
+df_summoners = rename(df_summoners, t2_champ4_sumName2 = 't2_champ4_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ4_sum2')
+df_games$t2_champ4_sum2 <- NULL
+
+# Hechizo principal utilizado por el jugador 5 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ5_sum1 = 't2_champ4_sum2')
+df_summoners = rename(df_summoners, t2_champ5_sumName1 = 't2_champ4_sumName2')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum1')
+df_games$t2_champ5_sum1 <- NULL
+
+# Hechizo secundario utilizado por el jugador 5 del equipo rojo
+df_summoners = rename(df_summoners, t2_champ5_sum2 = 't2_champ5_sum1')
+df_summoners = rename(df_summoners, t2_champ5_sumName2 = 't2_champ5_sumName1')
+
+df_games <- left_join(df_games, df_summoners, by = 't2_champ5_sum2')
+df_games$t2_champ5_sum2 <- NULL
+```
+
+```{r}
 #Variables con los nombres en lugar de los ID 
 dfClusName = df_games
 dfAR = df_games
-
 ```
-
 
 #Chunk arboles de decisión. (Alicia)
 ```{r}
