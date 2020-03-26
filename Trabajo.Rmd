@@ -17,6 +17,8 @@ library(RJSONIO)
 library(ggplot2)
 library(cluster)
 library(factoextra)
+library(ggplot2)
+
 ```
 
 ## Lectura de datasets.
@@ -558,25 +560,35 @@ Prob1_plot + theme(plot.title = element_text(color="Black", size=12, face="bold.
 
 ```
 
-#Clústering (David)
+
+## Clústering (David)
+
+* Queremos obtener los personajes que más se seleccionan en las partidas que duran menos tiempo. Es decir, los que suelen facilitar que la partida se acorte debido a que son buenos personajes. 
+
+* Debemos limpiar las columnas que no necesitemos. Para ello nos quedamos solo con la duracion del juego y los personajes seleccionados ya que es la información que necesitamos para hacer un  heatmap donde el eje X corresponda con la duración de la partida y el eje Y con los personajes disponibles, siendo la tupla x,y en las partidas que han durado X cuántas veces se ha seleccionado el personaje Y.
+
+* Necesitamos los nombres de los personajes en lugar del ID
+
 ```{r}
-
-#Queremos obtener los personajes que más se seleccionan en las partidas que duran menos tiempo. Es decir, los que suelen facilitar que la partida se acorte debido a que son buenos personajes. 
-
-# Debemos limpiar las columnas que no necesitemos. Para ello nos quedamos solo con la duracion del juego y los personajes seleccionados ya que es la información que necesitamos para hacer un  heatmap donde el eje X corresponda con la duración de la partida y el eje Y con los personajes disponibles, siendo la tupla x,y en las partidas que han durado X cuántas veces se ha seleccionado el personaje Y.
-
-#Necesitamos los nombres de los personajes en lugar del ID
 dfClus = dfClusName
 
-#Quitamos los partidos por encima de 40 minutos. Esta decisión la he tomado al obtener una media de duración de la fuente https://www.leagueofgraphs.com/es/rankings/game-durations. He considerado que si el objetivo es observar los mejores personajes en partidas de corta duración, las partidas que superen la media en un 20-30% no son de nuestro interés para el estudio, pero evidentemente necesitamos partidas con una duración media o un poco larga a fin de tener una referencia comparativa.
+```
+
+* Quitamos los partidos por encima de 40 minutos. Esta decisión la he tomado al obtener una media de duración de la fuente https://www.leagueofgraphs.com/es/rankings/game-durations. He considerado que si el objetivo es observar los mejores personajes en partidas de corta duración, las partidas que superen la media en un 20-30% no son de nuestro interés para el estudio, pero evidentemente necesitamos partidas con una duración media o un poco larga a fin de tener una referencia comparativa.
+
+```{r}
 dfClus
 dfClus <- dfClus[!(dfClus$gameDuration > 2400),]
+```
 
 
-#El tiempo viene dado en segundos, por lo que lo transformamos a minutos, redondeando a cero dígitos. 
+* El tiempo viene dado en segundos, por lo que lo transformamos a minutos, redondeando a cero dígitos. 
+```{r}
 dfClus$gameDuration = round(dfClus$gameDuration/60, digits = 0)
+```
 
-#Eliminamos las columnas que no nos aportan información relevante para este proceso.
+* Eliminamos las columnas que no nos aportan información relevante para este proceso.
+```{r}
 dfClus$winner = NULL
 dfClus$firstBlood = NULL
 dfClus$firstTower = NULL
@@ -646,12 +658,12 @@ dfClus$t2_banName2 = NULL
 dfClus$t2_banName3 = NULL
 dfClus$t2_banName4 = NULL
 dfClus$t2_banName5 = NULL
+```
 
+* Una vez tenemos únicamente los datos que nos interesan, usamos la funcion table() de R para hacer conteo y sumar todos los elementos ordenandolos en los ejes de abscisa x = tiempo y = nombre de personaje.
 
-#Una vez tenemos únicamente los datos que nos interesan, usamos la funcion table() de R para hacer conteo y sumar todos los elementos ordenandolos en los ejes de abscisa x = tiempo y = nombre de personaje.
-
-#Debido a la disposición de los datos tenemos que hacer este proceso de forma individual por cada columna y luego sumarlo.
-
+* Debido a la disposición de los datos tenemos que hacer este proceso de forma individual por cada columna y luego sumarlo.
+```{r}
 t1 = table(x=dfClus$gameDuration, y=dfClus$t1_champ1Name)
 t2 = table(x=dfClus$gameDuration, y=dfClus$t1_champ2Name)
 t3 = table(x=dfClus$gameDuration, y=dfClus$t1_champ3Name)
@@ -666,37 +678,43 @@ t10 = table(x=dfClus$gameDuration, y=dfClus$t2_champ5Name)
 
 tt = t1+t2+t3+t4+t5+t6+t7+t8+t9+t10
 tt
+```
 
-
-#Ahora este objeto lo tenemos que transformar en dataframe para trabajar con el.
+* Ahora este objeto lo tenemos que transformar en dataframe para trabajar con el.
+```{r}
 dt = as.data.frame(tt)
-
 dt
+```
 
-#Debido a la cantidad de campeones que hay en el juego si realizamos un plot  la información será poco visible y no podremos distinguir a penas nada como vemos en el siguiente mapa de calor.
+* Debido a la cantidad de campeones que hay en el juego si realizamos un plot  la información será poco visible y no podremos distinguir a penas nada como vemos en el siguiente mapa de calor.
+```{r}
 ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
+```
 
-
-#Para poner solución a esto vamos a aplicar un filtro. Eliminamos los campeones que hayan sido seleccionados menos de doscientas veces.
+* Para poner solución a esto vamos a aplicar un filtro. Eliminamos los campeones que hayan sido seleccionados menos de doscientas veces.
+```{r}
 best200 <- dt[!(dt$Freq < 200),]
 best200
-#Realizamos el plot para comprobar si se visualiza mejor. Vemos que hay cierta mejoría, pero aun es dificil discernir de forma clara qué campeones son mejores.
+```
+
+* Realizamos el plot para comprobar si se visualiza mejor. Vemos que hay cierta mejoría, pero aun es dificil discernir de forma clara qué campeones son mejores.
+```{r}
 pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile()
 pbest200
+```
 
-
-#Aplicamos un segundo filtro en el que eliminamos campeones que hayan sido seleccionado menos de cuatrocientas veces.
+* Aplicamos un segundo filtro en el que eliminamos campeones que hayan sido seleccionado menos de cuatrocientas veces.
+```{r}
 best400 <- dt[!(dt$Freq < 400),]
 best400
+```
 
-#En esta ocasión comprobamos que se visualiza mejor y se  puede obtener informacion clara sobre qué campeones son más seleccionados en partidas que duran poco tiempo.
+* En esta ocasión comprobamos que se visualiza mejor y se  puede obtener informacion clara sobre qué campeones son más seleccionados en partidas que duran poco tiempo.
+```{r}
 pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile()
 pbest400
-
-
-#Conclusión: Para analizar estos datos se hace necesario conocer un poco la mecánica del juego ya que en el existen roles dentro de los personajes, y esos roles explican ciertas anomalías que pueden darse en los resultados obtenidos. Por ejemplo, podemos observar que hay dos personajes concretos que se son seleccionados mucho en partidas de duración corta hasta duración larga. Tristana es ADC (personaje a distancia que hace daño) y Thresh es support (personaje que da soporte, que ayuda al ADC en su linea). Los datos pertenecen a la S6 (2016) y durante esa season debido a las mecánicas del juego ese dúo tenia muy buena sinergia por lo que era muy usual encontrarlos juntos en la linea de bot. Este dato, como otros, nos demuestra que los datos obtenidos y las conclusiones que podamos sacar son relevantes. 
-
-#Otro dato a tener en cuenta es que 7/12 de estos personajes son ADC. ¿Qué significa esto? Que se repitan tanto las mismas selecciones para el mismo rol quiere decir que para dicha posición hay personajes, en este caso siete, que son más apropiados para acortar la duración de la partida, mientras que las otras posiciones estan más abiertas a variar en la selección de personaje y esto no va a influir en la duración de la partida. Esto tiene sentido, puesto que, generalmente, quien lleva las riendas de la partida debido a que es quien hace más daño es precisamente el ADC, por lo tanto, el rol y el personaje adecuado afectan a la duración de la partida.
-
-
 ```
+
+* Conclusión: Para analizar estos datos se hace necesario conocer un poco la mecánica del juego ya que en el existen roles dentro de los personajes, y esos roles explican ciertas anomalías que pueden darse en los resultados obtenidos. Por ejemplo, podemos observar que hay dos personajes concretos que se son seleccionados mucho en partidas de duración corta hasta duración larga. Tristana es ADC (personaje a distancia que hace daño) y Thresh es support (personaje que da soporte, que ayuda al ADC en su linea). Los datos pertenecen a la S6 (2016) y durante esa season debido a las mecánicas del juego ese dúo tenia muy buena sinergia por lo que era muy usual encontrarlos juntos en la linea de bot. Este dato, como otros, nos demuestra que los datos obtenidos y las conclusiones que podamos sacar son relevantes. 
+
+* Otro dato a tener en cuenta es que 7/12 de estos personajes son ADC. ¿Qué significa esto? Que se repitan tanto las mismas selecciones para el mismo rol quiere decir que para dicha posición hay personajes, en este caso siete, que son más apropiados para acortar la duración de la partida, mientras que las otras posiciones estan más abiertas a variar en la selección de personaje y esto no va a influir en la duración de la partida. Esto tiene sentido, puesto que, generalmente, quien lleva las riendas de la partida debido a que es quien hace más daño es precisamente el ADC, por lo tanto, el rol y el personaje adecuado afectan a la duración de la partida.
