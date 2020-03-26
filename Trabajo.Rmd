@@ -514,49 +514,68 @@ ggplot(dfHist, aes(x = firstTower, fill = firstTower)) +
   scale_y_continuous(name= "Games") +
   scale_x_discrete(name = "First Tower", labels = c('Blue','None','Red'))
 
-# Probabilidad del quipo azul de tirar primera torre
+# Probabilidad del quipo Azul de tirar primera torre
 # si se hace al primer heraldo.
 
-tableFT<- table(firstTower)
-tableFRH<- table(firstRiftHerald)
-table_RH_FT<- table(firstRiftHerald, firstTower)
-p_firstTowerIfFRH<-percent(table_RH_FT[1,1]/ tableFT[1])
-p_firstTowerIfFRH
+dfHist_heraldBLue <- dfHist[(dfHist$firstRiftHerald == "blue"),]
+nrow(dfHist_heraldBLue)
+dfHist_heraldTowerBLue <- dfHist_heraldBLue[!(dfHist_heraldBLue$firstTower != "blue"),]
+nrow(dfHist_heraldTowerBLue)
+p_firstTowerBLUE<- percent(((nrow(dfHist_heraldTowerBLue))/nrow(dfHist_heraldBLue)))
+p_firstTowerBLUE
 
-# Probabilidad de tirar primera torre del equipo azul
-# si nadie ha hecho el primer heraldo
+# Probabilidad del quipo Rojo de tirar primera torre
+# si se hace al primer heraldo.
 
-table_RH_FT<- table(firstRiftHerald, firstTower)
-p_firstTowerT1<-percent(table_RH_FT[2,1]/ tableFT[1])
-p_firstTowerT1
+dfHist_heraldRed <- dfHist[(dfHist$firstRiftHerald == "red"),]
+nrow(dfHist_heraldRed)
+dfHist_heraldTowerRed <- dfHist_heraldRed[!(dfHist_heraldRed$firstTower != "red"),]
+nrow(dfHist_heraldTowerRed)
+p_firstTowerRED<- percent(((nrow(dfHist_heraldTowerRed))/nrow(dfHist_heraldRed)))
+p_firstTowerRED
 
-# Probabilidad de tirar primera torre del equipo rojo
-# si nadie ha hecho el primer heraldo
+# Contrario
+# Probabilidad del quipo Rojo de tirar primera torre
+# si el equipo Azul se hace al primer heraldo.
 
-table_RH_FT<- table(firstRiftHerald, firstTower)
-p_firstTowerT2<-percent(table_RH_FT[2,3]/ tableFT[3])
-p_firstTowerT2
+dfHist_heraldBLue <- dfHist[(dfHist$firstRiftHerald == "blue"),]
+nrow(dfHist_heraldBLue)
+dfHist_heraldTowerEnemyR <- dfHist_heraldBLue[!(dfHist_heraldBLue$firstTower == "blue"),]
+nrow(dfHist_heraldTowerRed)
+p_firstTowerEnemyRed<- percent(((nrow(dfHist_heraldTowerEnemyR))/nrow(dfHist_heraldBLue)))
+p_firstTowerEnemyRed
+
+# Probabilidad del quipo Azul de tirar primera torre
+# si el equipo Rojo se hace al primer heraldo.
+
+dfHist_heraldRed <- dfHist[(dfHist$firstRiftHerald == "red"),]
+nrow(dfHist_heraldRed)
+dfHist_heraldTowerEnemyB <- dfHist_heraldRed[!(dfHist_heraldRed$firstTower == "red"),]
+nrow(dfHist_heraldTowerRed)
+p_firstTowerEnemyBlue<- percent(((nrow(dfHist_heraldTowerEnemyB))/nrow(dfHist_heraldRed)))
+p_firstTowerEnemyBlue
+
 
 # Convierto a tabla y dataframe
 
-probX <- matrix(c (36.4, 50, 49.2), ncol=3, nrow = 1, byrow=TRUE)
-colnames(probX) <- c("p_firstTowerIfFRH","p_firstTowerT1","p_firstTowerT2")
+probX <- matrix(c (p_firstTowerBLUE, p_firstTowerRED, p_firstTowerEnemyRed, p_firstTowerEnemyBlue), ncol=4, nrow = 1, byrow=TRUE)
+colnames(probX) <- c("First Tower Blue","First Tower Red","First Tower EnemyRed", "First Tower EnemyBlue")
 rownames(probX) <- c("Probability")
 probX <- as.table(probX)
 probX
 
 prob1 <- as.data.frame(probX)
 
-Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), Freq)) + geom_bar(stat='identity', fill = "#FF6666", colour="black") +
+Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), Freq)) + geom_bar(stat='identity', fill = "#FFFF99", colour="black") +
   geom_text(aes(label = Freq, vjust = 3)) +
-  scale_y_continuous(name= "Probabilities %") +
-  scale_x_discrete(name = "First Tower with and witout Herald", labels = c('First Tower with First Herald','T1 First Tower withot Herald','T2 First Tower withot Herald')) +
+  scale_y_discrete(name= "Probabilities %") +
+  scale_x_discrete(name = "Probab. of getting First Tower", labels = c('First Tower Blue','First Tower Red','First Tower EnemyRed','First Tower EnemyBlue')) +
   ggtitle("Probabilities % of getting First Tower")
 Prob1_plot + theme(plot.title = element_text(color="Black", size=12, face="bold.italic"))
 
-# CONCLUSIÓN: Aquí estamos estudiando la relación entre Hacer Primer Heraldo + Tirar Primera Torre. Como se puede observar en el gráfico, el hecho de hacer el primer heraldo no es muy relevante ya que nos da un 36,4% de probabilidad que el equipo azul tire la primera torre teniendo el primer heraldo. Esto se puede deber a que las partidas del dataset son de equipos "low rank" y no se interesan mucho por hacer objetivos, ya que teniendo el heraldo permite conseguir una ventaja a la hora de tirar torres, ventaja muy importante en el early game para superar al enemigo en oro. Después se puede observar que sin tener el Heraldo los dos equipos tienen casi la misma probabilidad de tirar la primera torre.
-
 ```
+* CONCLUSIÓN: Aquí estamos estudiando la relación entre Hacer Primer Heraldo + Tirar Primera Torre. Como se puede observar en el gráfico, el hecho de llevarse el primer Heraldo es bastante importante, ya que la probabilidad de tirar la primera torre tras llevarse el Heraldo en el equipo azul es de un 72,6% y en el equipo rojo es de un 71,6%. Esto es debido a que una vez que se hace el primer heraldo, se busca ayudar en una línea para luego invocar a este y que cargue contra la estructura (en este caso la primera torre) ya que el equipo que se la lleve primero recibe un bonus de oro.
+* También se ha representado en el gráfico la probabilidad de que un equipo se haga el Heraldo y que el contrario tire la torre. Por ejemplo, si el equipo azul hace el Heraldo, la probabilidad de que el equipo rojo tire la primera torre es de un 27,4%. Es un porcentaje pequeño, por lo que no es habitual que esto ocurra, aunque si es posible, ya que para hacer el Heraldo en los primeros minutos cuando aparece se suele necesitar ayuda de algún compañero y el equipo enemigo puede aprovechar para pushear una línea y conseguir la primera torre.
 
 #Clústering (David)
 ```{r}
