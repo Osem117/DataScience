@@ -396,6 +396,7 @@ dfAR = df_games
 ```{r}
 
 library(ggplot2)
+library(scales)
 
 dfHist = df_games
 
@@ -464,6 +465,12 @@ dfHist$t2_banName3 = NULL
 dfHist$t2_banName4 = NULL
 dfHist$t2_banName5 = NULL
 
+```
+
+```{r}
+
+attach(dfHist)
+
 # Represento en Histogramas cuántas veces se ha llevado el equipo azul
 # el primer heraldo y la primera torre.
 
@@ -486,8 +493,8 @@ ggplot(dfHist, aes(x = firstTower, fill = firstTower)) +
 # Probabilidad del quipo azul de tirar primera torre
 # si se hace al primer heraldo.
 
-table(firstTower)
-table(firstRiftHerald)
+tableFT<- table(firstTower)
+tableFRH<- table(firstRiftHerald)
 table_RH_FT<- table(firstRiftHerald, firstTower)
 p_firstTowerIfFRH<-percent(table_RH_FT[1,1]/ tableFT[1])
 p_firstTowerIfFRH
@@ -516,8 +523,8 @@ probX
 
 prob1 <- as.data.frame(probX)
 
-Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), V1)) + geom_bar(stat='identity', fill = "#FF6666", colour="black") +
-  geom_text(aes(label = V1, vjust = 3)) +
+Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), Freq)) + geom_bar(stat='identity', fill = "#FF6666", colour="black") +
+  geom_text(aes(label = Freq, vjust = 3)) +
   scale_y_continuous(name= "Probabilities %") +
   scale_x_discrete(name = "First Tower with and witout Herald", labels = c('First Tower with First Herald','T1 First Tower withot Herald','T2 First Tower withot Herald')) +
   ggtitle("Probabilities % of getting First Tower")
