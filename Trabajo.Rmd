@@ -21,6 +21,7 @@ library(cluster)
 library(factoextra)
 library(party)
 library(caTools)
+library(scales)
 ```
 
 ## Lectura de datasets. (Alicia)
@@ -594,11 +595,13 @@ mean(predictions_best == df_games_dt_test$winner) # Porcentaje de aciertos
 
 Finalmente, obtenemos una sutil mejora para el porcentaje que obtuvimos anteriormente al utilizar únicamente los datos sobre objetivos. Si buscamos modelos más rápidos y que utilicen menos variables, podríamos optar por el anteriormente nombrado modelo construido a partir de los datos sobre objetivos (model_objectives) con un 91,81% de aciertos o incluso con el modelo construido a partir de los datos sobre estructuras (model_structures) con un 90,01% de aciertos.
 
-#Histogramas comparativos (María)
-```{r}
+# Histogramas comparativos (María)
 
-library(ggplot2)
-library(scales)
+* Como preprocesado, para esta parte eliminamos las columnas que no necesitamos:
+  - Nombre de los campeones
+  - Hechizos de los campeones
+  - Baneos de cada equipo
+```{r}
 
 dfHist = df_games
 
@@ -669,6 +672,8 @@ dfHist$t2_banName5 = NULL
 
 ```
 
+* A continuación, representamos en histogramas cuántas veces se han llevado ambos equipos el primer Heraldo y la primera torre.
+
 ```{r}
 
 attach(dfHist)
@@ -677,24 +682,35 @@ attach(dfHist)
 # el primer heraldo y la primera torre.
 
 # View First Rift Herald
-
-ggplot(dfHist, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
-  scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
+FRH<- ggplot(dfHist, aes(x = firstRiftHerald, fill = firstRiftHerald)) +
+  geom_bar(colour="black") + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
+  scale_fill_manual(values=c("#33CCFF","#D3D3D3","#FF6666")) +
   scale_y_continuous(name= "Games") +
   scale_x_discrete(name = "First Rift Herald", labels = c('Blue','None','Red'))
-  
+FRH
+
 # View First Tower
-  
-ggplot(dfHist, aes(x = firstTower, fill = firstTower)) +
-  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
-  scale_fill_manual(values=c("#00BFC4","#D3D3D3","#F8766D")) +
+FT<- ggplot(dfHist, aes(x = firstTower, fill = firstTower)) +
+  geom_bar(colour="black") + geom_text(stat='count',aes(label=..count..),vjust=-0.25) +
+  scale_fill_manual(values=c("#33CCFF","#D3D3D3","#FF6666")) +
   scale_y_continuous(name= "Games") +
   scale_x_discrete(name = "First Tower", labels = c('Blue','None','Red'))
+FT
 
+```
+
+## Conclusión
+
+* En cuanto al primer Heraldo, se puede observar que ambos equipos están igualados. El equipo azul se lo ha llevado más veces pero no hay mucha diferencia con el equipo rojo. Sí que se puede observar que muchas veces no se han hecho ninguno de los dos equipos el Heraldo, ya que este aparece en el minuto 8 y desaparece en el 19:45 aproximadamente, por lo que es muy habitual que en muchas partidas los equipos se centren en otros objetivos. También comentar que en los primeros minutos de vida del Heraldo es muy difícil que un solo jugador lo mate solo, por lo que necesita ayuda normalmente del top lane y/o mid lane, y dependiendo de cómo vaya cada línea dedicen hacerlo o no.
+* En cuanto a la primera torre también están muy igualados, ya que la partida empieza con un 50% de probabilid cada uno. El equipo azul supera ligeramente al equipo rojo, posiblemente influenciado por el hecho de que el equipo azul se ha llevado algunas más veces el Heraldo que el equipo rojo.
+
+# Relación entre tirar Primera Torre teniendo el Primer Heraldo
+
+* A continuación pasamos a estudiar la relación entre hacer el primer Heraldo y llevarse la primera torre.
+
+```{r}
 # Probabilidad del quipo Azul de tirar primera torre
 # si se hace al primer heraldo.
-
 dfHist_heraldBLue <- dfHist[(dfHist$firstRiftHerald == "blue"),]
 nrow(dfHist_heraldBLue)
 dfHist_heraldTowerBLue <- dfHist_heraldBLue[!(dfHist_heraldBLue$firstTower != "blue"),]
@@ -704,7 +720,6 @@ p_firstTowerBLUE
 
 # Probabilidad del quipo Rojo de tirar primera torre
 # si se hace al primer heraldo.
-
 dfHist_heraldRed <- dfHist[(dfHist$firstRiftHerald == "red"),]
 nrow(dfHist_heraldRed)
 dfHist_heraldTowerRed <- dfHist_heraldRed[!(dfHist_heraldRed$firstTower != "red"),]
@@ -712,10 +727,10 @@ nrow(dfHist_heraldTowerRed)
 p_firstTowerRED<- percent(((nrow(dfHist_heraldTowerRed))/nrow(dfHist_heraldRed)))
 p_firstTowerRED
 
-# Contrario
+# Ahora al contrario
+
 # Probabilidad del quipo Rojo de tirar primera torre
 # si el equipo Azul se hace al primer heraldo.
-
 dfHist_heraldBLue <- dfHist[(dfHist$firstRiftHerald == "blue"),]
 nrow(dfHist_heraldBLue)
 dfHist_heraldTowerEnemyR <- dfHist_heraldBLue[!(dfHist_heraldBLue$firstTower == "blue"),]
@@ -725,7 +740,6 @@ p_firstTowerEnemyRed
 
 # Probabilidad del quipo Azul de tirar primera torre
 # si el equipo Rojo se hace al primer heraldo.
-
 dfHist_heraldRed <- dfHist[(dfHist$firstRiftHerald == "red"),]
 nrow(dfHist_heraldRed)
 dfHist_heraldTowerEnemyB <- dfHist_heraldRed[!(dfHist_heraldRed$firstTower == "red"),]
@@ -733,9 +747,7 @@ nrow(dfHist_heraldTowerRed)
 p_firstTowerEnemyBlue<- percent(((nrow(dfHist_heraldTowerEnemyB))/nrow(dfHist_heraldRed)))
 p_firstTowerEnemyBlue
 
-
 # Convierto a tabla y dataframe
-
 probX <- matrix(c (p_firstTowerBLUE, p_firstTowerRED, p_firstTowerEnemyRed, p_firstTowerEnemyBlue), ncol=4, nrow = 1, byrow=TRUE)
 colnames(probX) <- c("First Tower Blue","First Tower Red","First Tower EnemyRed", "First Tower EnemyBlue")
 rownames(probX) <- c("Probability")
@@ -744,15 +756,19 @@ probX
 
 prob1 <- as.data.frame(probX)
 
-Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), Freq)) + geom_bar(stat='identity', fill = "#FFFF99", colour="black") +
+cbp1 <- c("#33CCFF", "#FF6666", "#FF6666","#33CCFF")
+
+Prob1_plot<- ggplot(prob1, aes(x=rownames(prob1), Freq)) + geom_bar(stat='identity', fill = cbp1, colour="black") +
   geom_text(aes(label = Freq, vjust = 3)) +
-  scale_y_discrete(name= "Probabilities %") +
-  scale_x_discrete(name = "Probab. of getting First Tower", labels = c('First Tower Blue','First Tower Red','First Tower EnemyRed','First Tower EnemyBlue')) +
+  scale_y_discrete(name="Probabilities") +
+  scale_x_discrete(name = "Probab. of getting First Tower", labels = c('First Tower\nBlue Team','First Tower\nRed Team','First Tower\nEnemy (Red Team)','First Tower\nEnemy (Blue Team)')) +
   ggtitle("Probabilities % of getting First Tower")
 Prob1_plot + theme(plot.title = element_text(color="Black", size=12, face="bold.italic"))
 
 ```
-* CONCLUSIÓN: Aquí estamos estudiando la relación entre Hacer Primer Heraldo + Tirar Primera Torre. Como se puede observar en el gráfico, el hecho de llevarse el primer Heraldo es bastante importante, ya que la probabilidad de tirar la primera torre tras llevarse el Heraldo en el equipo azul es de un 72,6% y en el equipo rojo es de un 71,6%. Esto es debido a que una vez que se hace el primer heraldo, se busca ayudar en una línea para luego invocar a este y que cargue contra la estructura (en este caso la primera torre) ya que el equipo que se la lleve primero recibe un bonus de oro.
+## CONCLUSIÓN 
+
+* Aquí estamos estudiando la relación entre Hacer Primer Heraldo + Tirar Primera Torre. Como se puede observar en el gráfico, el hecho de llevarse el primer Heraldo es bastante importante, ya que la probabilidad de tirar la primera torre tras llevarse el Heraldo en el equipo azul es de un 72,6% y en el equipo rojo es de un 71,6%. Esto es debido a que una vez que se hace el primer heraldo, se busca ayudar en una línea para luego invocar a este y que cargue contra la estructura (en este caso la primera torre) ya que el equipo que se la lleve primero recibe un bonus de oro.
 * También se ha representado en el gráfico la probabilidad de que un equipo se haga el Heraldo y que el contrario tire la torre. Por ejemplo, si el equipo azul hace el Heraldo, la probabilidad de que el equipo rojo tire la primera torre es de un 27,4%. Es un porcentaje pequeño, por lo que no es habitual que esto ocurra, aunque si es posible, ya que para hacer el Heraldo en los primeros minutos cuando aparece se suele necesitar ayuda de algún compañero y el equipo enemigo puede aprovechar para pushear una línea y conseguir la primera torre.
 
 
@@ -883,7 +899,10 @@ dt
 
 * Debido a la cantidad de campeones que hay en el juego si realizamos un plot  la información será poco visible y no podremos distinguir a penas nada como vemos en el siguiente mapa de calor.
 ```{r}
-ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile()
+ggplot(dt, aes(x = dt$x, y = dt$y, fill=dt$Freq)) +geom_tile() +
+  scale_x_discrete(name = "Game Duration") +
+  scale_y_discrete(name = "Champions") + 
+  labs(fill = "Frequency")
 ```
 
 * Para poner solución a esto vamos a aplicar un filtro. Eliminamos los campeones que hayan sido seleccionados menos de doscientas veces.
@@ -894,8 +913,10 @@ best200
 
 * Realizamos el plot para comprobar si se visualiza mejor. Vemos que hay cierta mejoría, pero aun es dificil discernir de forma clara qué campeones son mejores.
 ```{r}
-pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile()
-pbest200
+pbest200 = ggplot(best200, aes(x = best200$x, y = best200$y, fill=best200$Freq)) +geom_tile() +
+  scale_x_discrete(name = "Game Duration") +
+  scale_y_discrete(name = "Champions")
+pbest200 + labs(fill = "Frequency")
 ```
 
 * Aplicamos un segundo filtro en el que eliminamos campeones que hayan sido seleccionado menos de cuatrocientas veces.
@@ -906,8 +927,10 @@ best400
 
 * En esta ocasión comprobamos que se visualiza mejor y se  puede obtener informacion clara sobre qué campeones son más seleccionados en partidas que duran poco tiempo.
 ```{r}
-pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile()
-pbest400
+pbest400 = ggplot(best400, aes(x = best400$x, y = best400$y, fill=best400$Freq)) +geom_tile() +
+  scale_x_discrete(name = "Game Duration") +
+  scale_y_discrete(name = "Champions")
+pbest400 + labs(fill = "Frequency")
 ```
 
 * Conclusión: Para analizar estos datos se hace necesario conocer un poco la mecánica del juego ya que en el existen roles dentro de los personajes, y esos roles explican ciertas anomalías que pueden darse en los resultados obtenidos. Por ejemplo, podemos observar que hay dos personajes concretos que se son seleccionados mucho en partidas de duración corta hasta duración larga. Tristana es ADC (personaje a distancia que hace daño) y Thresh es support (personaje que da soporte, que ayuda al ADC en su linea). Los datos pertenecen a la S6 (2016) y durante esa season debido a las mecánicas del juego ese dúo tenia muy buena sinergia por lo que era muy usual encontrarlos juntos en la linea de bot. Este dato, como otros, nos demuestra que los datos obtenidos y las conclusiones que podamos sacar son relevantes. 
